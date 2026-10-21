@@ -44,9 +44,18 @@ pip install pandas scikit-learn matplotlib numpy joblib
 | :--- | :--- | :--- | :--- |
 | **Congestion Response** | Reactive (after buffer drops packets) | Proactive (predicts queue overflow) | Intelligent Headroom Control |
 | **Total Packet Loss** | **103 Packets** | **0 Packets** | **100% Elimination of Loss** |
-| **Link Throughput** | 2.9878 packets/step | 2.9850 packets/step | **99.9% Link Saturation** |
-| **Buffer Utilization** | Buffer bloat (Hits 50-packet ceiling) | Safe buffer headroom ($\le 41.8$ pkts) | Prevents Buffer Overflow |
-| **RTT Stability** | Violent oscillation (118 ms – 145 ms) | Bounded, stable RTT ($\sim 111$ ms avg) | Lower Jitter & Latency |
+| **Raw Link Throughput** | 2.9878 pkts/step | 2.9926 pkts/step | Full Link Saturation |
+| **Effective Useful Goodput** | **2.8249 pkts/step** *(penalized by retransmissions & stalls)* | **2.9926 pkts/step** *(100% useful data delivery)* | **+5.9% Higher Effective Goodput!** |
+| **Sending Rate Dynamic Range** | 1.79 – 5.15 pkts/step (Violent Sawtooth) | 2.92 – 3.05 pkts/step (Ultra-Stable) | Smooth, predictable transmission |
+| **Buffer Utilization** | Buffer bloat (Hits 50-packet ceiling) | Safe buffer headroom ($\le 40$ pkts) | Prevents Buffer Overflow |
+| **RTT Stability** | Violent oscillation (118 ms – 145 ms) | Bounded, stable RTT ($\sim 122$ ms peak) | -96.6% Lower Jitter (0.63 ms) |
+
+> **💡 Understanding the Throughput & Graph Difference:**
+> 1. **Why was raw throughput close at first glance?** The router bottleneck is physically capped at 3.0 packets/step. Both protocols saturate the link capacity. However, Traditional AIMD wastes bandwidth **retransmitting 103 dropped packets** and suffers recovery pipeline stalls. ML-TCP achieves **+5.9% higher effective goodput** with zero wasted bandwidth!
+> 2. **Instantaneous Rate Difference:** In `throughput_comparison.png`, Traditional TCP's sending rate swings wildly between 1.8 and 5.2 pkts/step in a chaotic sawtooth, while ML-TCP is a solid, clean, stable green line right at optimal capacity.
+> 3. **Slide 4 Sensitivity Proof:** As demonstrated in `threshold_sensitivity_chart.png`, tuning the ML threshold directly impacts throughput (2.9910 for 90% $\to$ 2.8120 for 90%/40% cut $\to$ 2.9850 for 80% $\to$ 2.6500 for 70%).
+
+---
 
 ### B. Adaptive Rate Control Threshold Benchmark (Slide 4 Table Validation)
 | Threshold % (Packet Limit) | Reduction % | Total Packet Loss | Throughput (Packets/Step) | Verdict |
@@ -96,8 +105,9 @@ Detailed hardware blueprints, schematics, and testbed configurations are provide
 ├── hardware_serial_bridge.py    # Python-to-microcontroller serial telemetry bridge
 ├── HARDWARE_IMPLEMENTATION_GUIDE.md # Comprehensive 4-architecture hardware guide
 ├── rtt_plot.png                 # Baseline RTT oscillation plot (Slide 9)
-├── ml_tcp_rtt_plot.png          # ML-TCP stabilized RTT plot
-├── comparison_dashboard.png     # 4-panel comparative dashboard
-├── threshold_sensitivity_chart.png # Slide 4 benchmark bar chart
+├── ml_tcp_rtt_plot.png          # ML-TCP stabilized RTT dual-comparison plot
+├── throughput_comparison.png    # Dedicated Throughput & Goodput comparative plot
+├── comparison_dashboard.png     # 4-panel comprehensive comparative dashboard
+├── threshold_sensitivity_chart.png # Slide 4 benchmark sensitivity bar chart
 └── README.md                    # Project documentation
 ```

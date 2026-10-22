@@ -1,0 +1,9 @@
+Feature Removed,Goodput,Avg RTT (ms),dU_1.0 vs Full,Impact
+None (Full 7 Features),3.5358,50.6,+0.0000 (Ref),Reference Model
+rtt_ratio,1.8899,54.7,-0.6437 +/- 0.1117 (*),Degrades Control
+rtt_gradient_1,3.5558,50.6,+0.0044 +/- 0.0017 (*),Negligible Impact
+rtt_gradient_3,3.5251,50.6,-0.0019 +/- 0.0019 (ns),Negligible Impact
+rtt_gradient_5,3.5318,50.6,-0.0008 +/- 0.0009 (ns),Negligible Impact
+delivery_rate,3.5259,50.6,-0.0016 +/- 0.0019 (ns),Negligible Impact
+send_rate,3.5259,50.6,-0.0016 +/- 0.0018 (ns),Negligible Impact
+loss_flag_5,3.5258,50.6,-0.0017 +/- 0.0018 (ns),Negligible Impact

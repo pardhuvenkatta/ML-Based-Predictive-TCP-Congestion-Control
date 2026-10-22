@@ -1,0 +1,5 @@
+Pairing,Flow 0 Goodput,Flow 1 Goodput,Aggregate Loss,Jain Fairness Index,Dominant Flow
+Vegas vs Reno,0.4663 +/- 0.0010,5.5061 +/- 0.0010,33.3,0.584 +/- 0.000,Reno
+BBR vs Reno,1.8828 +/- 0.0110,4.1142 +/- 0.0110,73.3,0.878 +/- 0.002,Reno
+No-Throttle vs Reno,0.3383 +/- 0.0027,5.6268 +/- 0.0024,36.2,0.560 +/- 0.001,Reno
+ML-TCP (M_iter) vs Vegas,4.6020 +/- 0.0218,1.3628 +/- 0.0217,0.0,0.772 +/- 0.005,ML-TCP (M_iter)

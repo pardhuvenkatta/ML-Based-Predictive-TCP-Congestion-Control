@@ -1,0 +1,5 @@
+Scenario,Protocol,EWMA Goodput,EWMA Loss,Max-Filter Goodput,Max-Filter Loss,Gain from Max-Pacing
+S3,No-Throttle,2.9471,3.4,2.9603 +/- 0.0041,3.4,+0.4%
+S3,ML-TCP (M_iter),2.9471,3.4,2.9603 +/- 0.0041,3.4,+0.4%
+S4,No-Throttle,2.1605,60.5,2.5497 +/- 0.0329,60.8,+18.0%
+S4,ML-TCP (M_iter),2.1605,60.5,2.5497 +/- 0.0329,60.8,+18.0%

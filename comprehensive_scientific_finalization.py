@@ -208,18 +208,23 @@ class ProtocolAgent:
     def __init__(self, name):
         self.name = name
         self.rate = 1.05
-        self.min_rtt = 50.0
-        self.rtt_history = [50.0] * 6
+        self.min_rtt = None
+        self.rtt_history = []
         self.recent_losses = [0] * 6
         self.est_delivery_rate = 1.0
-        self.deliv_history = [1.0] * 20
+        self.deliv_history = []
         self.throttle_count = 0
 
     def get_min_rate(self):
         return max(0.02, 0.20 * self.est_delivery_rate)
 
     def observe_ack(self, rtt, loss_event, acked_proc):
-        self.min_rtt = min(self.min_rtt, rtt)
+        if self.min_rtt is None:
+            self.min_rtt = rtt
+            self.rtt_history = [rtt] * 6
+            self.deliv_history = [acked_proc] * 20
+        else:
+            self.min_rtt = min(self.min_rtt, rtt)
         self.rtt_history.append(rtt)
         if len(self.rtt_history) > 20: self.rtt_history.pop(0)
         self.recent_losses.append(1 if loss_event else 0)
@@ -312,10 +317,12 @@ class PacingVariantD1_CoincidentRise(ProtocolAgent):
     """
     def __init__(self, name):
         super().__init__(name)
-        self.window = [1.0] * 20
+        self.window = []
 
     def observe_ack(self, rtt, loss_event, acked_proc):
         super().observe_ack(rtt, loss_event, acked_proc)
+        if not self.window:
+            self.window = [acked_proc] * 20
         curr_rtt = self.rtt_history[-1]
         rtt_ratio = curr_rtt / max(self.min_rtt, 1e-3)
         grad_1 = curr_rtt - self.rtt_history[-2]

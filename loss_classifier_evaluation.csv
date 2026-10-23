@@ -1,0 +1,16 @@
+Channel_Condition,Strategy,Goodput,Pct_Capacity,Total_Loss,Avg_RTT,p95_RTT,gp_val
+Loss 0.1%,Standard Backoff,2.9597 +/- 0.0042,98.7%,3.4,59.1,60.3,2.9597487370087476
+Loss 0.1%,Non-ML Rule (rtt_ratio < 1.05),2.9605 +/- 0.0039,98.7%,3.4,59.1,60.3,2.9604924491442297
+Loss 0.1%,RF Loss Classifier,2.9689 +/- 0.0023,99.0%,3.4,59.1,59.9,2.9689484208500647
+Loss 0.5%,Standard Backoff,2.8872 +/- 0.0131,96.2%,15.2,57.6,60.5,2.8871647985698496
+Loss 0.5%,Non-ML Rule (rtt_ratio < 1.05),2.8981 +/- 0.0111,96.6%,15.2,57.7,60.6,2.8980662451925445
+Loss 0.5%,RF Loss Classifier,2.9335 +/- 0.0061,97.8%,15.2,58.5,59.8,2.933489589651099
+Loss 1.0%,Standard Backoff,2.7798 +/- 0.0242,92.7%,30.4,56.1,60.5,2.7798109707202783
+Loss 1.0%,Non-ML Rule (rtt_ratio < 1.05),2.8209 +/- 0.0151,94.0%,30.4,56.5,60.7,2.820926857650059
+Loss 1.0%,RF Loss Classifier,2.8876 +/- 0.0090,96.3%,30.4,58.2,59.5,2.8876316803447035
+Loss 2.0%,Standard Backoff,2.5233 +/- 0.0372,84.1%,60.8,53.7,60.2,2.5233226966364235
+Loss 2.0%,Non-ML Rule (rtt_ratio < 1.05),2.6792 +/- 0.0189,89.3%,60.8,54.7,60.4,2.6792216346203626
+Loss 2.0%,RF Loss Classifier,2.7965 +/- 0.0119,93.2%,60.9,57.8,59.5,2.7964524734736522
+Gilbert-Elliott Bursty Loss,Standard Backoff,2.6596 +/- 0.0351,88.7%,45.1,54.9,60.5,2.6596144874410625
+Gilbert-Elliott Bursty Loss,Non-ML Rule (rtt_ratio < 1.05),2.7503 +/- 0.0195,91.7%,45.1,55.6,60.5,2.750288102267879
+Gilbert-Elliott Bursty Loss,RF Loss Classifier,2.8438 +/- 0.0124,94.8%,45.1,58.0,59.5,2.84383638783215

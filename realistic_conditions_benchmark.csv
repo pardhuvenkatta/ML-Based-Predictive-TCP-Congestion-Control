@@ -1,0 +1,31 @@
+Condition,Controller,Goodput,Pct_Capacity,Loss,Avg_RTT,p95_RTT,JFI
+Cellular Markov Fades,Winning Non-ML (Hybrid Rule),3.8286 +/- 0.0502,98.6%,3.3,99.6,134.4,1.000
+Cellular Markov Fades,Competitive-Mode Hybrid,2.9018 +/- 0.0681,74.7%,305.2,98.2,145.0,1.000
+Cellular Markov Fades,Reference Vegas,2.9305 +/- 0.0544,75.5%,12.1,64.0,114.9,1.000
+Cellular Markov Fades,Audited BBR,2.7553 +/- 0.1189,70.9%,316.0,86.4,145.0,1.000
+Cellular Markov Fades,TCP Reno,3.2558 +/- 0.0471,83.9%,81.8,82.4,140.6,1.000
+Cellular Markov Fades,TCP CUBIC,2.5501 +/- 0.0673,65.7%,182.5,79.2,141.4,1.000
+ACK Compression & Jitter,Winning Non-ML (Hybrid Rule),1.8958 +/- 0.0210,63.2%,415.4,137.1,145.0,1.000
+ACK Compression & Jitter,Competitive-Mode Hybrid,2.7170 +/- 0.0095,90.6%,103.5,134.7,145.0,1.000
+ACK Compression & Jitter,Reference Vegas,2.9732 +/- 0.0011,99.1%,0.0,54.1,57.4,1.000
+ACK Compression & Jitter,Audited BBR,0.0000 +/- 0.0000,0.0%,8606.7,144.6,145.0,1.000
+ACK Compression & Jitter,TCP Reno,2.8918 +/- 0.0083,96.4%,38.7,108.8,135.7,1.000
+ACK Compression & Jitter,TCP CUBIC,2.9409 +/- 0.0022,98.0%,13.6,119.2,137.9,1.000
+Short-Flow Web Traffic,Winning Non-ML (Hybrid Rule),3.3453 +/- 0.0028,83.6%,14.8,98.7,134.3,1.000
+Short-Flow Web Traffic,Competitive-Mode Hybrid,2.8910 +/- 0.0108,72.3%,174.1,117.5,145.0,1.000
+Short-Flow Web Traffic,Reference Vegas,2.6127 +/- 0.0108,65.3%,14.3,68.4,132.5,1.000
+Short-Flow Web Traffic,Audited BBR,2.3803 +/- 0.0083,59.5%,414.0,110.4,145.0,1.000
+Short-Flow Web Traffic,TCP Reno,3.0019 +/- 0.0119,75.0%,90.0,85.2,136.7,1.000
+Short-Flow Web Traffic,TCP CUBIC,2.3489 +/- 0.0292,58.7%,152.7,89.4,137.3,1.000
+CoDel AQM Bottleneck,Winning Non-ML (Hybrid Rule),2.8974 +/- 0.0009,96.6%,14.7,57.5,60.7,1.000
+CoDel AQM Bottleneck,Competitive-Mode Hybrid,2.8152 +/- 0.0325,93.8%,52.8,88.4,109.6,1.000
+CoDel AQM Bottleneck,Reference Vegas,2.8476 +/- 0.0014,94.9%,13.8,53.5,57.2,1.000
+CoDel AQM Bottleneck,Audited BBR,2.9981 +/- 0.0001,99.9%,0.0,50.7,54.3,1.000
+CoDel AQM Bottleneck,TCP Reno,2.8276 +/- 0.0000,94.3%,64.3,113.3,136.0,1.000
+CoDel AQM Bottleneck,TCP CUBIC,2.8151 +/- 0.0000,93.8%,63.2,101.7,136.9,1.000
+Heterogeneous RTTs (20/50/200ms),Winning Non-ML (Hybrid Rule),5.9779 +/- 0.0006,99.6%,0.0,59.7,60.0,0.876
+Heterogeneous RTTs (20/50/200ms),Competitive-Mode Hybrid,5.4215 +/- 0.0015,90.4%,211.3,130.1,145.0,1.000
+Heterogeneous RTTs (20/50/200ms),Reference Vegas,5.9775 +/- 0.0002,99.6%,0.0,52.9,54.9,0.588
+Heterogeneous RTTs (20/50/200ms),Audited BBR,5.9043 +/- 0.0064,98.4%,35.8,118.8,131.8,0.399
+Heterogeneous RTTs (20/50/200ms),TCP Reno,5.9730 +/- 0.0000,99.5%,9.1,119.5,130.4,1.000
+Heterogeneous RTTs (20/50/200ms),TCP CUBIC,5.9038 +/- 0.0000,98.4%,33.2,119.1,132.3,1.000

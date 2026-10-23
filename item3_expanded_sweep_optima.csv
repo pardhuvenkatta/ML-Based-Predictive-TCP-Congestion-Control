@@ -1,0 +1,4 @@
+Model_Mode,Best_Threshold,Best_Cut,TRAIN_U1,Boundary_Status
+PERSISTENCE,1.04,0.95,-2.6006,Interior
+LINEAR,1.15,0.95,-2.6108,Interior
+RF,1.15,0.95,-2.6071,Interior

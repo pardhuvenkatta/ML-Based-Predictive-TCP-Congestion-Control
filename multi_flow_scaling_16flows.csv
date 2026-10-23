@@ -1,0 +1,41 @@
+Flow_Count,Startup_Mode,Controller,Goodput,Loss,Avg_RTT,JFI
+2,Equal Start Times,Winning Non-ML (Hybrid Rule),3.9904,0.0,61.7,0.998 +/- 0.001
+2,Equal Start Times,Audited BBR,3.9986,0.0,73.9,0.832 +/- 0.090
+2,Equal Start Times,Reference Vegas,3.9937,0.0,56.2,1.000 +/- 0.000
+2,Equal Start Times,TCP Reno,3.9532,17.0,222.3,1.000 +/- 0.000
+2,Equal Start Times,TCP CUBIC,3.9326,23.4,220.6,1.000 +/- 0.000
+2,Staggered Starts,Winning Non-ML (Hybrid Rule),3.9548,0.0,70.8,0.753 +/- 0.013
+2,Staggered Starts,Audited BBR,3.9974,0.0,136.0,0.673 +/- 0.017
+2,Staggered Starts,Reference Vegas,3.9699,0.0,56.0,0.998 +/- 0.001
+2,Staggered Starts,TCP Reno,3.9544,15.0,220.1,0.998 +/- 0.001
+2,Staggered Starts,TCP CUBIC,3.8950,28.7,217.0,0.969 +/- 0.007
+4,Equal Start Times,Winning Non-ML (Hybrid Rule),5.9954,0.0,63.1,0.998 +/- 0.000
+4,Equal Start Times,Audited BBR,5.9977,0.0,70.4,0.895 +/- 0.110
+4,Equal Start Times,Reference Vegas,5.9970,0.0,58.3,1.000 +/- 0.000
+4,Equal Start Times,TCP Reno,5.4412,211.6,220.9,1.000 +/- 0.000
+4,Equal Start Times,TCP CUBIC,5.9266,26.5,215.4,1.000 +/- 0.000
+4,Staggered Starts,Winning Non-ML (Hybrid Rule),5.8847,0.0,89.7,0.657 +/- 0.032
+4,Staggered Starts,Audited BBR,5.8368,60.0,208.5,0.392 +/- 0.016
+4,Staggered Starts,Reference Vegas,5.9174,0.0,58.0,0.996 +/- 0.001
+4,Staggered Starts,TCP Reno,5.4492,201.7,215.0,0.996 +/- 0.001
+4,Staggered Starts,TCP CUBIC,5.8326,30.7,210.0,0.953 +/- 0.006
+8,Equal Start Times,Winning Non-ML (Hybrid Rule),8.0000,0.0,65.8,0.999 +/- 0.000
+8,Equal Start Times,Audited BBR,7.9760,8.5,172.4,0.447 +/- 0.122
+8,Equal Start Times,Reference Vegas,8.0000,0.0,62.5,1.000 +/- 0.000
+8,Equal Start Times,TCP Reno,7.8560,54.7,221.7,1.000 +/- 0.000
+8,Equal Start Times,TCP CUBIC,7.8617,52.4,211.6,1.000 +/- 0.000
+8,Staggered Starts,Winning Non-ML (Hybrid Rule),7.8179,0.0,131.9,0.709 +/- 0.023
+8,Staggered Starts,Audited BBR,7.5129,182.0,204.5,0.217 +/- 0.003
+8,Staggered Starts,Reference Vegas,7.8578,0.0,61.8,0.993 +/- 0.001
+8,Staggered Starts,TCP Reno,7.7577,74.5,216.0,0.994 +/- 0.001
+8,Staggered Starts,TCP CUBIC,7.6795,67.2,206.5,0.978 +/- 0.003
+16,Equal Start Times,Winning Non-ML (Hybrid Rule),12.0000,0.0,115.6,1.000 +/- 0.000
+16,Equal Start Times,Audited BBR,11.8249,65.6,174.7,0.208 +/- 0.118
+16,Equal Start Times,Reference Vegas,11.9999,0.0,66.6,1.000 +/- 0.000
+16,Equal Start Times,TCP Reno,2.8191,3486.4,223.7,1.000 +/- 0.000
+16,Equal Start Times,TCP CUBIC,9.4559,966.1,218.2,1.000 +/- 0.000
+16,Staggered Starts,Winning Non-ML (Hybrid Rule),11.6881,0.2,157.2,0.795 +/- 0.015
+16,Staggered Starts,Audited BBR,10.9118,407.8,192.5,0.117 +/- 0.002
+16,Staggered Starts,Reference Vegas,11.7372,0.0,65.8,0.993 +/- 0.001
+16,Staggered Starts,TCP Reno,3.7899,3092.4,218.2,0.988 +/- 0.002
+16,Staggered Starts,TCP CUBIC,9.5625,826.2,212.0,0.992 +/- 0.002

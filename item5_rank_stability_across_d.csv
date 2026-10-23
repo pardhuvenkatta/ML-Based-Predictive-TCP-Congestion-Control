@@ -1,0 +1,46 @@
+d_weight,Rank,Controller,Mean_Score
+0.25,1,Persistence,0.2294
+0.25,2,Random Forest,0.2236
+0.25,3,Linear Extrapolation,0.2213
+0.25,4,Winning Hybrid Pacing (D1),0.1547
+0.25,5,Reference Vegas,0.1538
+0.25,6,No Predictor (Baseline),0.1237
+0.25,7,TCP CUBIC,0.0342
+0.25,8,TCP Reno,-0.1149
+0.25,9,Audited BBR,-0.2627
+0.5,1,Persistence,-0.7565
+0.5,2,Random Forest,-0.7643
+0.5,3,Linear Extrapolation,-0.7655
+0.5,4,Reference Vegas,-0.8452
+0.5,5,Winning Hybrid Pacing (D1),-0.8977
+0.5,6,No Predictor (Baseline),-0.9270
+0.5,7,TCP CUBIC,-1.0876
+0.5,8,TCP Reno,-1.2382
+0.5,9,Audited BBR,-1.3285
+1.0,1,Persistence,-2.7282
+1.0,2,Linear Extrapolation,-2.7393
+1.0,3,Random Forest,-2.7401
+1.0,4,Reference Vegas,-2.8432
+1.0,5,Winning Hybrid Pacing (D1),-3.0024
+1.0,6,No Predictor (Baseline),-3.0285
+1.0,7,TCP CUBIC,-3.3311
+1.0,8,Audited BBR,-3.4602
+1.0,9,TCP Reno,-3.4847
+2.0,1,Persistence,-6.6718
+2.0,2,Linear Extrapolation,-6.6869
+2.0,3,Random Forest,-6.6918
+2.0,4,Reference Vegas,-6.8393
+2.0,5,Winning Hybrid Pacing (D1),-7.2118
+2.0,6,No Predictor (Baseline),-7.2316
+2.0,7,Audited BBR,-7.7236
+2.0,8,TCP CUBIC,-7.8183
+2.0,9,TCP Reno,-7.9778
+4.0,1,Persistence,-14.5589
+4.0,2,Linear Extrapolation,-14.5821
+4.0,3,Random Forest,-14.5952
+4.0,4,Reference Vegas,-14.8314
+4.0,5,Winning Hybrid Pacing (D1),-15.6306
+4.0,6,No Predictor (Baseline),-15.6376
+4.0,7,Audited BBR,-16.2503
+4.0,8,TCP CUBIC,-16.7926
+4.0,9,TCP Reno,-16.9641

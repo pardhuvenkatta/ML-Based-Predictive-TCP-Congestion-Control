@@ -1,0 +1,16 @@
+Sensitivity_Condition,Controller,Goodput,Avg_RTT,U_1.0
+Base Setup (Ref),Winning Non-ML (Hybrid Rule),2.9691,59.5,-2.9977
+Base Setup (Ref),Reference Vegas,2.9805,54.1,-2.8982
+Base Setup (Ref),TCP Reno,2.9404,123.5,-3.7374
+Queue-to-RTT -50% (0.95 ms/pkt),Winning Non-ML (Hybrid Rule),2.9691,59.5,-2.9977
+Queue-to-RTT -50% (0.95 ms/pkt),Reference Vegas,2.9805,54.1,-2.8982
+Queue-to-RTT -50% (0.95 ms/pkt),TCP Reno,2.9404,123.5,-3.7374
+Queue-to-RTT +50% (2.85 ms/pkt),Winning Non-ML (Hybrid Rule),2.9691,59.5,-2.9977
+Queue-to-RTT +50% (2.85 ms/pkt),Reference Vegas,2.9805,54.1,-2.8982
+Queue-to-RTT +50% (2.85 ms/pkt),TCP Reno,2.9404,123.5,-3.7374
+Noise Sigma -50% (0.5 ms),Winning Non-ML (Hybrid Rule),2.9691,59.5,-2.9977
+Noise Sigma -50% (0.5 ms),Reference Vegas,2.9805,54.1,-2.8982
+Noise Sigma -50% (0.5 ms),TCP Reno,2.9404,123.5,-3.7374
+Noise Sigma +50% (1.5 ms),Winning Non-ML (Hybrid Rule),2.9691,59.5,-2.9977
+Noise Sigma +50% (1.5 ms),Reference Vegas,2.9805,54.1,-2.8982
+Noise Sigma +50% (1.5 ms),TCP Reno,2.9404,123.5,-3.7374

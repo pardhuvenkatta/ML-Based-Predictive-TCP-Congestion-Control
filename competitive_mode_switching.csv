@@ -1,0 +1,7 @@
+Buffer_Size,Opponent,Standard_Goodput,CompMode_Goodput,Throughput_Gain,Standard_RTT,CompMode_RTT,Starvation_Relief
+B=10,TCP Reno,2.7832,2.7832,+0.0%,51.5ms,51.5ms,Effective
+B=10,TCP CUBIC,3.0444,3.0444,+0.0%,51.7ms,51.7ms,Effective
+B=50,TCP Reno,1.4257,4.2185,+195.9%,85.7ms,126.5ms,Effective
+B=50,TCP CUBIC,0.1595,4.7736,+2893.5%,106.9ms,125.7ms,Effective
+B=200,TCP Reno,0.7380,4.2023,+469.4%,340.5ms,407.5ms,Effective
+B=200,TCP CUBIC,0.1032,4.7478,+4499.0%,380.4ms,399.0ms,Effective

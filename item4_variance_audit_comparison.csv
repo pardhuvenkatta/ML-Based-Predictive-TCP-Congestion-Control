@@ -1,0 +1,3 @@
+Dataset,Behavior_Policy,Target_Variance_Var(y),Persistence_MAE,Persistence_R2,Linear_MAE,Linear_R2,RF_MAE,RF_R2
+Broad Randomized Test Set,"Mixture (FastExpiry, Persistence, Vegas, Exploratory)",1.572856,0.0340,0.9572,0.2252,-1.4148,0.0403,0.9744
+Shallow Buffer Test Set (B=5),FastExpiry Baseline Only,0.001054,0.0140,-0.3070,0.0391,-20.8696,0.0501,-7.1265

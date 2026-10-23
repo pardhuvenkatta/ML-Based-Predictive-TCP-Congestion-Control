@@ -1,0 +1,7 @@
+Buffer_Size,Opponent,Standard_GP,Rule_Comp_GP,ML_Comp_GP,Rule_Gain,ML_Gain,Starvation_Relieved
+B=10,TCP Reno,2.7832,2.7832,3.3748,+0.0%,+21.3%,Yes
+B=10,TCP CUBIC,3.0444,3.0444,3.5073,+0.0%,+15.2%,Yes
+B=50,TCP Reno,1.4257,4.2185,4.2948,+195.9%,+201.2%,Yes
+B=50,TCP CUBIC,0.1595,4.7736,4.8778,+2893.5%,+2958.9%,Yes
+B=200,TCP Reno,0.7380,4.2023,4.2819,+469.4%,+480.2%,Yes
+B=200,TCP CUBIC,0.1032,4.7478,4.8529,+4499.0%,+4600.8%,Yes

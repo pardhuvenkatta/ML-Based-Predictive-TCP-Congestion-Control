@@ -1,0 +1,6 @@
+Trace,Controller,Goodput,Pct_Capacity,Loss,Avg_RTT,U_1.0
+Mahimahi LTE/5G Cellular Profile,Winning Non-ML (Hybrid Rule),4.5250,98.5%,0.0,59.4,-2.5744
+Mahimahi LTE/5G Cellular Profile,Reference Vegas,4.5473,99.0%,0.0,52.7,-2.4495
+Mahimahi LTE/5G Cellular Profile,Audited BBR,4.5882,99.9%,0.0,51.1,-2.4107
+Mahimahi LTE/5G Cellular Profile,TCP Reno,4.5408,98.9%,13.9,81.6,-2.8885
+Mahimahi LTE/5G Cellular Profile,TCP CUBIC,4.5065,98.1%,15.2,117.2,-3.2580

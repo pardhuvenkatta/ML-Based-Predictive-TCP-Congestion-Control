@@ -2,7 +2,7 @@
 ML-Based Predictive TCP Congestion Control
 Script: reproduce_all.py (End-to-End Master Reproduction Runner)
 
-Single-command script that executes all three comprehensive benchmark suites:
+Single-command script that executes all comprehensive benchmark suites:
 1. step1_supervised_and_loss_classification.py:
    - Broad randomized dataset generation (67,500 train / 22,500 test samples).
    - Supervised models: RF, LightGBM, Small MLP, GRU, 1D-CNN regression & classification.
@@ -23,6 +23,14 @@ Single-command script that executes all three comprehensive benchmark suites:
    - Copa/Nimbus competitive mode switching across buffer sizes B=10, 50, 200.
    - Step-change stability metrics and +/-50% simulator parameter sensitivity sweep.
    - Generates publication plots (realistic_time_series_step_change.png, multi_flow_scaling_jfi_chart.png).
+4. comprehensive_final_robustness.py:
+   - Full factorial: Base RTT (20 and 200 ms) x Buffers (3, 5, 50, 200 pkts).
+   - Mahimahi cellular trace replay.
+   - Rule-based vs. ML-triggered competitor detection.
+   - Capacity recovery & burst loss blackout recovery.
+   - Kernel / userspace feasibility and overhead matrix.
+   - Expanded +/-50% sensitivity on 4 core physical simulator assumptions.
+   - Generates all publication-grade plots.
 
 Usage:
   python reproduce_all.py
@@ -30,6 +38,7 @@ Usage:
 
 import os
 import sys
+import json
 import time
 import subprocess
 
@@ -56,10 +65,21 @@ def main():
     print("  Authors: BAHAAR (Reg. 24BCE1760), PARDHU (Reg. 24BCE1754)")
     print("*" * 80)
 
+    # Load fixed seeds
+    if os.path.exists("seeds.json"):
+        with open("seeds.json", "r") as f:
+            cfg = json.load(f)
+        seeds = cfg.get("seeds", list(range(42, 62)))
+        print(f"  Loaded {len(seeds)} fixed evaluation seeds from seeds.json: {seeds[:5]}...{seeds[-1]}")
+    else:
+        seeds = list(range(42, 62))
+        print(f"  Defaulting to 20 fixed evaluation seeds: {seeds}")
+
     phases = [
         ("Step 1: Supervised Models & Loss Classifier", "step1_supervised_and_loss_classification.py"),
         ("Step 2: RL Controllers PPO & SAC, Distillation & Gate F", "step2_rl_controllers_ppo_sac.py"),
-        ("Step 3: Realistic Robustness, 16-Flow Scaling & Competition", "step3_realistic_robustness_and_competition.py")
+        ("Step 3: Realistic Robustness, 16-Flow Scaling & Competition", "step3_realistic_robustness_and_competition.py"),
+        ("Step 4: Final Robustness Deliverables & Publication Figures", "comprehensive_final_robustness.py")
     ]
 
     phase_timings = {}

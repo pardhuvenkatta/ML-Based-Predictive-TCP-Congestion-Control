@@ -1,0 +1,12 @@
+Model,Inference_us,Model_Size_KB,RAM_Footprint_KB,Kernel_Feasible,Userspace_Feasible
+Persistence Baseline,0.02,0.0,0.1,Yes (eBPF / C module),Yes
+Linear Extrapolation,0.05,0.0,0.1,Yes (eBPF / C module),Yes
+Winning Hybrid Rule (D1),0.04,0.0,0.2,Yes (eBPF / C module),Yes
+Distilled Decision Tree (D=6),0.45,4.2,12.0,Yes (eBPF array map / fixed if-else),Yes
+Small PyTorch MLP,0.25,13.3,25000.0,No (Requires PyTorch/C++ runtime),Yes (CCP)
+LightGBM Regressor,1.1,286.6,1500.0,Marginal (Treelite compilation),Yes (CCP)
+Random Forest (100 Trees),2.85,3547.0,8500.0,No (Too large for eBPF stack),Yes (CCP)
+PyTorch 1D-CNN,1.58,10.3,28000.0,No (Requires PyTorch),Yes (CCP)
+PyTorch GRU (8-step),4.51,17.7,32000.0,No (RNN recurrence too slow),Yes (CCP)
+Deep RL PPO (SB3),12.4,195.8,45000.0,No (Requires SB3/PyTorch),Yes (CCP)
+Deep RL SAC (SB3),14.8,3425.7,60000.0,No (Requires SB3/PyTorch),Yes (CCP)

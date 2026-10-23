@@ -3,12 +3,12 @@ Persistence Baseline,rtt_ratio (t+5),0.0142,0.9986,-,-,-,5 steps,0.02 us,0 KB
 Persistence Baseline,rtt_ratio (t+10),0.0262,0.9958,-,-,-,10 steps,0.02 us,0 KB
 Linear Extrapolation,rtt_ratio (t+5),0.0213,0.9947,-,-,-,5 steps,0.05 us,0 KB
 Linear Extrapolation,rtt_ratio (t+10),0.0452,0.9788,-,-,-,10 steps,0.05 us,0 KB
-Random Forest,rtt_ratio (t+5),0.0169,0.9985,-,-,-,5 steps,2.85 us,3547.0 KB
-Random Forest,rtt_ratio (t+10),0.0312,0.9954,-,-,-,10 steps,2.85 us,3547.0 KB
-Random Forest Classifier,Loss-Type (Overflow vs Random),-,-,0.9963,1.0000,0.0235,0 steps (ACK arrival),2.85 us,3547.0 KB
-LightGBM,rtt_ratio (t+5),0.0162,0.9986,-,-,-,5 steps,1.10 us,286.6 KB
-LightGBM,rtt_ratio (t+10),0.0307,0.9954,-,-,-,10 steps,1.10 us,286.6 KB
-LightGBM Classifier,Loss-Type (Overflow vs Random),-,-,0.9948,0.1190,0.0588,0 steps (ACK arrival),1.10 us,286.6 KB
-Small PyTorch MLP,rtt_ratio (t+5),0.0176,0.9987,-,-,-,5 steps,0.25 us,13.3 KB
-PyTorch GRU (8-step),rtt_ratio (t+5),0.0623,0.9748,-,-,-,5 steps,4.51 us,17.7 KB
-PyTorch 1D-CNN (8-step),rtt_ratio (t+5),0.0251,0.9981,-,-,-,5 steps,1.58 us,10.3 KB
+Random Forest,rtt_ratio (t+5),0.0169,0.9985,-,-,-,5 steps,1.77 us,3547.0 KB
+Random Forest,rtt_ratio (t+10),0.0312,0.9954,-,-,-,10 steps,1.77 us,3547.0 KB
+Random Forest Classifier,Loss-Type (Overflow vs Random),-,-,0.9963,1.0000,0.0235,0 steps (ACK arrival),1.77 us,3547.0 KB
+LightGBM,rtt_ratio (t+5),0.0162,0.9986,-,-,-,5 steps,1.07 us,286.6 KB
+LightGBM,rtt_ratio (t+10),0.0307,0.9954,-,-,-,10 steps,1.07 us,286.6 KB
+LightGBM Classifier,Loss-Type (Overflow vs Random),-,-,0.9948,0.1190,0.0588,0 steps (ACK arrival),1.07 us,286.6 KB
+Small PyTorch MLP,rtt_ratio (t+5),0.0185,0.9987,-,-,-,5 steps,0.25 us,13.3 KB
+PyTorch GRU (8-step),rtt_ratio (t+5),0.0643,0.9716,-,-,-,5 steps,6.73 us,17.7 KB
+PyTorch 1D-CNN (8-step),rtt_ratio (t+5),0.0307,0.9977,-,-,-,5 steps,1.84 us,10.3 KB

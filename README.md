@@ -93,11 +93,12 @@ python reproduce_all.py
 
 ## 📚 Comparison with Published Literature
 
-1. **Remy (Winstein & Balakrishnan, SIGCOMM 2013):** Lookup-table policies optimized under known prior distributions. Our zero-parameter Persistence baseline and Hybrid Pacing achieve comparable optimality without requiring offline traffic priors.
-2. **PCC Vivace (Dong et al., NSDI 2018):** Online rate pacing driven by empirical delivery rate and latency gradients eliminates bufferbloat, confirming that rate pacing dominates black-box regression.
-3. **Aurora (Jay et al., ICML 2019):** Deep RL (PPO) applied directly to congestion control suffers severe performance collapse on out-of-distribution RTTs and multi-flow competition, matching our empirical findings.
-4. **Orca (Foo et al., SIGCOMM 2020):** Confirms why a hybrid architecture is necessary: fast per-packet dynamics must be governed by classical pacing, while learning operates on larger timescales.
-5. **Genet (Zheng et al., SIGCOMM 2022):** Deep RL policies overfit simulation dynamics and fail on micro-buffers ($B=5$), where simple persistence generalizes flawlessly.
+1. **Remy (Winstein and Balakrishnan, ACM SIGCOMM 2013):** Lookup-table policies optimized under explicit prior distributions of network parameters. Our findings show that rate pacing stabilizes sending rates without requiring offline traffic priors.
+2. **PCC Vivace (Dong et al., USENIX NSDI 2018):** Online rate pacing driven by empirical delivery rate and latency gradients eliminates bufferbloat, confirming that rate pacing dominates black-box regression.
+3. **Aurora (Jay et al., ICML 2019):** Deep RL (PPO) applied directly to congestion control suffers performance collapse on out-of-distribution RTTs and multi-flow competition, matching our empirical findings.
+4. **Orca (Abbasloo, Yen, Chao, ACM SIGCOMM 2020):** Confirms why a hybrid architecture is necessary: fast per-packet dynamics must be governed by classical pacing, while learning operates on larger timescales.
+5. **Genet (Xia et al., ACM SIGCOMM 2022):** Uses curriculum learning to train RL policies to generalize across network dynamics. Uncurriculumed RL models fail on micro-buffers ($B=5$).
+6. **BBR Evaluation (Hock et al., ACM SIGCOMM CCR 2017):** Documents BBR's buffer-dependent competition dynamics against loss-based TCP, matching our empirical multi-buffer findings.
 
 ---
 

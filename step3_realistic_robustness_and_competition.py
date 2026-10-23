@@ -62,7 +62,11 @@ def run_advanced_realistic_sim(
     stagger_flows=False,
     ack_compression=False,
     short_flow_workload=False,
-    aqm_mode=None # None or "codel"
+    aqm_mode=None, # None or "codel"
+    queue_to_rtt_coeff=1.9,
+    noise_sigma=1.0,
+    spike_prob=0.01,
+    spike_delay_range=(10.0, 35.0)
 ):
     rng = np.random.RandomState(seed)
     n_flows = len(agents)
@@ -177,14 +181,16 @@ def run_advanced_realistic_sim(
                 flow_proc[i] = total_proc * (rates[i] / total_send)
 
         # 4. Latency
-        true_queue_rtt = base_rtt + (buffer_capacity * 1.9 if loss_dropped > 0 else queue * 1.9)
+        true_queue_rtt = base_rtt + (buffer_capacity * queue_to_rtt_coeff if loss_dropped > 0 else queue * queue_to_rtt_coeff)
         rtt_log.append(true_queue_rtt)
         q_log.append(queue)
 
         # 5. Reverse Path: ACK Delivery & ACK Compression
         for i in active_indices:
-            flow_rtt_true = flow_base_rtts[i] + (buffer_capacity * 1.9 if loss_dropped > 0 else queue * 1.9)
-            noise = rng.normal(0, 1.0)
+            flow_rtt_true = flow_base_rtts[i] + (buffer_capacity * queue_to_rtt_coeff if loss_dropped > 0 else queue * queue_to_rtt_coeff)
+            noise = rng.normal(0, noise_sigma)
+            if spike_prob > 0 and rng.uniform(0, 1) < spike_prob:
+                noise += rng.uniform(spike_delay_range[0], spike_delay_range[1])
             obs_rtt = max(flow_base_rtts[i], flow_rtt_true + noise)
             flow_loss = flow_congestion_losses[i] > 0
             flow_delivered_now = flow_proc[i]

@@ -1,0 +1,3 @@
+Flow_Count,Controller,Total_Goodput,Avg_Queue,Avg_RTT,Loss,Per_Flow_GP,Evaluation_Status
+16,Hybrid Rule,12.0000,34.43,115.4ms,0.0,0.7500 each,preliminary (n=4)
+16,TCP Reno,2.7886,87.39,223.6ms,2332.0,0.1762 avg,preliminary (n=4)

@@ -1,0 +1,8 @@
+Buffer,Pairing,Standard_Hybrid_GP,Standard_Opp_GP,Standard_JFI,Standard_Loss,CompMode_Hybrid_GP,CompMode_Opp_GP,CompMode_JFI,CompMode_Loss,Throughput_Gain
+B=10,Hybrid vs TCP Reno,1.4623,2.3506,0.948,20.7,1.4623,2.3506,0.948,20.7,+0.0%
+B=10,Hybrid vs TCP CUBIC,1.7213,2.1626,0.987,6.8,1.7213,2.1626,0.987,6.8,+0.0%
+B=50,Hybrid vs TCP Reno,0.1407,3.8552,0.536,17.8,2.5919,1.4041,0.919,46.5,+1741.7%
+B=50,Hybrid vs TCP CUBIC,0.1051,3.8841,0.527,7.3,2.9335,1.0557,0.819,58.4,+2690.6%
+B=200,Hybrid vs TCP Reno,0.0652,3.9307,0.517,21.6,2.5780,1.4180,0.922,48.4,+3851.6%
+B=200,Hybrid vs TCP CUBIC,0.0797,3.9095,0.520,17.6,2.9082,1.0810,0.827,67.0,+3546.7%
+B=50,Hybrid vs Hybrid (Control),2.0481,1.9369,0.999,0.0,1.9972,1.9879,1.000,90.3,+0.0%

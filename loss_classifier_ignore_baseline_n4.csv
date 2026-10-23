@@ -1,0 +1,5 @@
+Condition,Controller,Goodput,Avg_RTT,Loss,JFI
+2.0% Random Loss Alone,Ignore All Loss,2.7939,58.3ms,62.8,1.000
+2.0% Random Loss Alone,Standard Backoff,2.6747,54.6ms,60.8,1.000
+1.0% Loss + Reno (B=50),Ignore All Loss vs Reno,2.7497 (Reno: 1.2471),136.4ms,66.4,0.876
+1.0% Loss + Reno (B=50),Standard Hybrid vs Reno,0.1233 (Reno: 3.8735),103.8ms,21.5,0.532

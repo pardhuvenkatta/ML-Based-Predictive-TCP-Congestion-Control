@@ -13,12 +13,14 @@
 Machine Learning (ML) has frequently been proposed to revolutionize transport-layer congestion control by proactively predicting bufferbloat and packet drops. In this project, we conducted a rigorous, multi-scenario empirical evaluation across 20 pseudo-random seeds per scenario (Seeds 42–61), strict time-ordered train/test partitioning, and strictly sender-observable telemetry (RFC 793/5681 compliant, zero router or queue state leaks).
 
 ### Core Scientific Findings
-1. **Pacing Dominance & Scale-Invariance:** The primary performance driver of this architecture is **ACK-clocked delivery-rate pacing**: it stabilizes transmission rates at available bottleneck capacity, prevents drop-tail queue overflow, and eliminates bufferbloat across clean, high-bandwidth, and moderately congested channels. Furthermore, through **dimensionless temporal scaling**, the controller dynamically scales history horizons and rate increments to the observed RTT, achieving **92.5% to 99.3% capacity utilization across 20ms to 300ms propagation delays**.
+1. **Pacing Dominance & Scale-Invariance:** The primary performance driver of this architecture is **ACK-clocked delivery-rate pacing**: it stabilizes transmission rates at available bottleneck capacity, prevents drop-tail queue overflow, and eliminates bufferbloat across clean, high-bandwidth, and moderately congested channels. Furthermore, through **dimensionless temporal scaling**, the controller dynamically scales history horizons and rate increments to the observed RTT, achieving **92.5% to 99.3% capacity utilization across 20ms to 300ms propagation delays** while keeping queue delay within 0.1% to 14.2% of base RTT.
 2. **Predictor Ablation & Honest Rank:** In closed-loop predictive control on the baseline sweep grid, the Random Forest regressor statistically outperformed Linear Extrapolation ($\Delta U_{1.0} = +0.0089$, 95% CI $[+0.0067, +0.0111]$), but was strictly inferior to a zero-parameter **Persistence baseline** ($\Delta U_{1.0} = -0.0160$, 95% CI $[-0.0199, -0.0121]$).
-3. **Where ML Genuinely Beats Tuned Non-ML Rules (85.7% Win Rate):** When compared against a reference non-ML controller (`Pacing + RTT Rule + Competitive Mode`) tuned on TRAIN with the exact same 50-trial compute budget, Machine Learning **statistically won 12 out of 14 held-out scenarios (85.7% win rate, 0 non-ML wins, 2 ties)** across 20 seeds (Seeds 42–61) with Holm-Bonferroni correction.
-   - *Wireless Loss Classification (5/5 wins):* Random Forest classifier (F1 = 0.9489) outperforms tuned 1D threshold rules across 0.1%, 0.5%, 1.0%, 2.0% random loss, and Gilbert-Elliott bursty loss ($p < 10^{-5}$ on all).
-   - *Opponent Type Detection (3/5 wins, 2 ties):* Multi-class classifier distinguishes Reno, CUBIC, BBR, and Copa from delay/delivery correlation, relieving starvation against loss-based opponents without paying an unnecessary latency tax when alone.
-   - *Predictive Capacity Drop Adaptation (4/4 wins):* Forecasting bottleneck capacity 5 steps ahead ($R^2 = 0.9788$) proactively drains queues before cellular deep fades, slashing latency by 20–27ms without throughput loss.
+3. **Audited Value of Machine Learning (Strict Practical Significance Audit):**
+   - In accordance with rigorous scientific standards, a true "ML Win" requires that the 95% confidence interval strictly excludes zero **AND** the relative effect size is $\ge 1.0\%$ across all three utility weights $d \in \{0.5, 1.0, 2.0\}$.
+   - Across 14 held-out evaluation conditions tested with 20 pseudo-random seeds (Seeds 42–61) and Leave-One-Family-Out (LOFO) retraining, **only 1 out of 14 scenarios meets the practical significance threshold**: **Opponent Detection vs. Google BBR** ($\Delta U_{1.0} = +0.6253$, 95% CI $[+0.5727, +0.6780]$, $+19.97\%$ relative effect, $p < 10^{-15}$).
+   - In 5 scenarios (Gilbert-Elliott loss, Mahimahi trace, vs. Reno, vs. CUBIC, vs. Copa), ML yields a statistically detectable difference, but the relative effect is **sub-threshold (<1.0% practical gain)**. Furthermore, a simple `Ignore-All-Loss` rule or depth-3 decision tree achieves the exact same goodput ($2.876\text{ pkts/step}$).
+   - In 6 scenarios (1.0% Bernoulli, 2.0% Bernoulli, Markov cellular fade, Alone tax, vs. Vegas, vs. Self), results are **statistical ties** where tuned non-ML heuristics match or edge ML.
+   - In dynamic capacity adaptation on **Step Drops** and **Sinusoidal Channels**, supervised ML regression is **statistically inferior to the tuned non-ML controller** ($-14.24\%$ and $-11.80\%$ penalty) due to lagging predictions during step changes.
 4. **Deep Reinforcement Learning (Gate F Evaluation):** Continuous PPO and SAC agents were trained in a Gymnasium environment across 12 reward formulations $\times$ 3 seeds with domain randomization and a Reno/CUBIC competition curriculum. Both failed Gate F ($\Delta U_{1.0} = -1.7924 \pm 0.3577$ for PPO; $\Delta U_{1.0} = -0.3539 \pm 0.1879$ for SAC), suffering catastrophic policy collapse under long propagation delays (Base RTT = 200ms) and multi-flow scaling.
 5. **Copa/Nimbus Competitive-Mode Switching:** Detecting persistent standing queues (`rtt_ratio > 1.20` for $>60$ steps) relieved loss-induced starvation against TCP CUBIC at $B=50$, surging goodput from **0.1595 to 4.7736 pkts/step (+2893.5% gain)** with an insignificant latency cost of only $+6.3\text{ ms}$ when operating alone.
 
@@ -92,36 +94,36 @@ python reproduce_all.py
 
 ---
 
-## 🏆 Where Machine Learning Genuinely Beats Tuned Non-ML Heuristics
+## 🔬 Audited Master Scorecard: Where Machine Learning Adds Value
 
-To establish where Machine Learning provides genuine, measurable value over classical transport heuristics, we evaluated ML variants against the project's non-ML reference controller (`Pacing + RTT Rule + Competitive Mode`) tuned on the TRAIN partition with the **exact same 50-trial compute budget**.
+To establish where Machine Learning provides genuine, measurable value over classical transport heuristics, we evaluated ML variants against the non-ML reference controller (`Pacing + RTT Rule + Competitive Mode`) tuned on the TRAIN partition with the **exact same 50-trial compute budget**, evaluated across **20 pseudo-random seeds (Seeds 42–61)** with Leave-One-Family-Out (LOFO) retraining.
 
-### Master 14-Scenario Scorecard across 20 Seeds (42–61)
-Evaluated with paired Student's $t$-tests, 95% confidence intervals, and Holm-Bonferroni correction:
+### Master 14-Scenario Audited Scorecard across 20 Seeds (42–61)
+Evaluated with paired Student's $t$-tests, 95% confidence intervals, and strict practical significance criteria (CI excludes zero AND effect $\ge 1.0\%$ across $d \in \{0.5, 1.0, 2.0\}$):
 
-| Domain | Scenario | Mean GP (ML) | Mean GP (Tuned) | Mean RTT (ML) | Mean RTT (Tuned) | $\Delta U_{1.0}$ (95% CI) | $p$-value | Cohen's $d$ | Verdict |
+| Domain | Held-Out Scenario | Mean GP (ML) | Mean GP (Tuned) | Mean RTT (ML) | Mean RTT (Tuned) | $\Delta U_{1.0}$ (95% CI) | Effect (%) | Practical Significance? | Audited Scientific Verdict |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Loss Classifier** | 0.1% Random Loss | 2.955 | 2.948 | 56.3 ms | 56.3 ms | **+0.0023** $[+0.0015, +0.0031]$ | $1.14 \times 10^{-5}$ | 1.32 | **ML GENUINELY WINS** |
-| **Loss Classifier** | 0.5% Random Loss | 2.935 | 2.912 | 56.3 ms | 56.3 ms | **+0.0078** $[+0.0064, +0.0092]$ | $4.30 \times 10^{-10}$ | 2.60 | **ML GENUINELY WINS** |
-| **Loss Classifier** | 1.0% Random Loss | 2.909 | 2.872 | 56.3 ms | 56.3 ms | **+0.0129** $[+0.0119, +0.0139]$ | $1.13 \times 10^{-16}$ | 6.08 | **ML GENUINELY WINS** |
-| **Loss Classifier** | 2.0% Random Loss | 2.850 | 2.798 | 56.3 ms | 56.3 ms | **+0.0181** $[+0.0172, +0.0190]$ | $3.19 \times 10^{-20}$ | 9.41 | **ML GENUINELY WINS** |
-| **Loss Classifier** | Gilbert-Elliott Fade | 2.865 | 2.818 | 56.3 ms | 56.3 ms | **+0.0162** $[+0.0150, +0.0175]$ | $9.07 \times 10^{-17}$ | 6.15 | **ML GENUINELY WINS** |
-| **Opponent Detection** | Alone (Latency Tax) | 2.960 | 2.969 | 58.8 ms | 66.9 ms | **+0.0928** $[-0.0225, +0.2080]$ | 0.1085 | 0.38 | **STATISTICAL TIE** |
-| **Opponent Detection** | vs. TCP Reno | 4.390 | 4.132 | 127.6 ms | 125.4 ms | **+0.0433** $[+0.0402, +0.0463]$ | $2.77 \times 10^{-17}$ | 6.56 | **ML GENUINELY WINS** |
-| **Opponent Detection** | vs. TCP CUBIC | 4.811 | 4.653 | 125.9 ms | 124.4 ms | **+0.0217** $[+0.0196, +0.0238]$ | $7.76 \times 10^{-15}$ | 4.83 | **ML GENUINELY WINS** |
-| **Opponent Detection** | vs. Google BBR | 5.487 | 5.373 | 127.5 ms | 125.6 ms | **+0.0058** $[+0.0039, +0.0077]$ | $3.98 \times 10^{-6}$ | 1.43 | **ML GENUINELY WINS** |
-| **Opponent Detection** | vs. Delay Copa | 3.815 | 4.822 | 109.8 ms | 122.8 ms | **-0.2509** $[-0.4676, -0.0341]$ | 0.0256* | -0.54 | **STATISTICAL TIE** |
-| **Capacity Forecast** | Step Collapse ($6 \rightarrow 1.8$) | 3.616 | 3.643 | 79.8 ms | 84.4 ms | **+0.0489** $[+0.0387, +0.0591]$ | $5.08 \times 10^{-9}$ | 2.24 | **ML GENUINELY WINS** |
-| **Capacity Forecast** | Markov Cellular Fade | 3.692 | 3.700 | 75.2 ms | 102.0 ms | **+0.3027** $[+0.2758, +0.3297]$ | $1.64 \times 10^{-15}$ | 5.26 | **ML GENUINELY WINS** |
-| **Capacity Forecast** | Sinusoidal Capacity | 2.838 | 2.937 | 79.7 ms | 100.6 ms | **+0.1983** $[+0.1931, +0.2035]$ | $1.98 \times 10^{-25}$ | 17.75 | **ML GENUINELY WINS** |
-| **Capacity Forecast** | Mahimahi Cellular Trace | 4.770 | 5.750 | 69.7 ms | 89.1 ms | **+0.0581** $[+0.0451, +0.0712]$ | $1.69 \times 10^{-8}$ | 2.08 | **ML GENUINELY WINS** |
+| **Loss Classifier** | Gilbert-Elliott Fade | 2.876 | 2.862 | 55.2 ms | 55.0 ms | **+0.0016** $[+0.0000, +0.0032]$ | +0.055% | False | Sub-Threshold Difference (<1% Effect) |
+| **Loss Classifier** | 1.0% Bernoulli Loss | 2.914 | 2.906 | 55.6 ms | 55.3 ms | **-0.0018** $[-0.0041, +0.0006]$ | -0.059% | False | Statistical Tie / Inconclusive |
+| **Loss Classifier** | 2.0% Bernoulli Loss | 2.855 | 2.842 | 55.3 ms | 55.2 ms | **-0.0008** $[-0.0032, +0.0015]$ | -0.027% | False | Statistical Tie / Inconclusive |
+| **Capacity Forecast** | Markov Cellular Fade | 4.068 | 1.960 | 104.5 ms | 50.1 ms | **+0.0639** $[-0.1180, +0.2457]$ | +1.925% | False | Statistical Tie / Inconclusive |
+| **Capacity Forecast** | Mahimahi Cellular Trace | 5.000 | 2.085 | 85.9 ms | 50.1 ms | **+0.4630** $[+0.2083, +0.7178]$ | +14.00% | False | Sub-Threshold Difference (Fails at $d=2.0$) |
+| **Capacity Forecast** | Step Collapse ($6 \rightarrow 1.8$) | 3.412 | 2.213 | 127.8 ms | 50.1 ms | **-0.4522** $[-0.6059, -0.2986]$ | -14.24% | False | **Inferior to Baseline** |
+| **Capacity Forecast** | Sinusoidal Channel | 2.980 | 1.852 | 122.0 ms | 50.1 ms | **-0.3919** $[-0.4973, -0.2865]$ | -11.80% | False | **Inferior to Baseline** |
+| **Opponent Detection** | vs. TCP Reno | 4.097 | 3.942 | 125.3 ms | 124.0 ms | **+0.0280** $[+0.0267, +0.0293]$ | +0.811% | False | Sub-Threshold Difference (<1% Effect) |
+| **Opponent Detection** | vs. TCP CUBIC | 4.591 | 4.621 | 121.9 ms | 124.6 ms | **+0.0150** $[+0.0122, +0.0177]$ | +0.454% | False | Sub-Threshold Difference (<1% Effect) |
+| **Opponent Detection** | **vs. Google BBR** | **5.682** | **5.471** | **70.1 ms** | **125.3 ms** | **+0.6253** $[+0.5727, +0.6780]$ | **+19.97%** | **True** | **Statistically Outperforms ($\ge 1\%$ Effect)** |
+| **Opponent Detection** | vs. Delay Copa | 4.848 | 4.762 | 125.6 ms | 123.6 ms | **+0.0020** $[+0.0014, +0.0027]$ | +0.062% | False | Sub-Threshold Difference (<1% Effect) |
+| **Opponent Detection** | Alone (Latency Tax) | 5.839 | 5.834 | 56.4 ms | 59.3 ms | **+0.0358** $[-0.0391, +0.1108]$ | +1.555% | False | Statistical Tie / Inconclusive |
+| **Opponent Detection** | vs. Reference Vegas | 4.239 | 4.239 | 56.1 ms | 56.1 ms | **0.0000** $[0.0000, 0.0000]$ | 0.000% | False | Statistical Tie / Inconclusive |
+| **Opponent Detection** | vs. Self (Control) | 2.739 | 2.934 | 89.3 ms | 97.4 ms | **+0.0195** $[-0.0971, +0.1361]$ | +0.565% | False | Statistical Tie / Inconclusive |
 
-*Overall Scorecard: **12 / 14 scenarios won by ML (85.7% Win Rate)**, 0 won by Tuned Non-ML, 2 statistical ties.*
+*Overall Scorecard: **1 / 14 scenarios meets practical significance (7.1%)**, 5 sub-threshold differences (<1% effect), 6 statistical ties, 2 scenarios where ML is inferior.*
 
 ### Key Takeaways:
-1. **Wireless Loss Discrimination:** Random Forest classifier (F1 = 0.9489) using multi-horizon gradients ($k=1,3,5$) suppresses false backoffs that degrade 1D threshold rules, winning 5/5 loss conditions.
-2. **Opponent Detection:** ML detects loss-based and rate-based competitors to trigger competitive probing, eliminating starvation vs Reno, CUBIC, and BBR while avoiding the latency tax when running alone.
-3. **Proactive Capacity Adaptation:** Forecasting capacity drops 5 steps ahead ($R^2 = 0.9788$) allows pre-emptive buffer draining before queuing delay accumulates, slashing cellular fade latency by 20–27ms.
+1. **Opponent Detection vs BBR is ML's Clearest Victory:** Multi-class classification reliably detects rate-based probing, preventing BBR-induced starvation without causing bufferbloat ($\Delta U_{1.0} = +0.6253$, $+19.97\%$ effect size).
+2. **Loss Classification:** While RF is statistically detectable on Gilbert-Elliott fades, the relative effect size is minute ($+0.055\%$), and simple heuristics (`Ignore-All-Loss` or depth-3 tree) match RF goodput ($2.876\text{ pkts/step}$).
+3. **Capacity Forecasting:** Offline $R^2$ does not translate to closed-loop wins; on sharp step drops and sinusoidal oscillations, supervised forecasting lags physical transitions, underperforming the non-ML baseline by 11.8% to 14.2%.
 
 ---
 

@@ -74,9 +74,11 @@ class PacingVariantD1_CoincidentRise(ProtocolAgent):
         if not self.window:
             self.window = [acked_proc] * 20
         curr_rtt = self.rtt_history[-1]
-        rtt_ratio = curr_rtt / max(self.min_rtt, 1e-3)
+        base_rtt = self.min_rtt if self.min_rtt is not None else 50.0
+        rtt_ratio = curr_rtt / max(base_rtt, 1e-3)
         grad_1 = curr_rtt - self.rtt_history[-2] if len(self.rtt_history) >= 2 else 0.0
-        if rtt_ratio > 1.15 and grad_1 > 0:
+        rise_ratio = 1.0 + max(0.15, 5.0 / base_rtt)
+        if rtt_ratio > rise_ratio and grad_1 > 0:
             self.window = [acked_proc]
         else:
             self.window.append(acked_proc)
@@ -85,18 +87,21 @@ class PacingVariantD1_CoincidentRise(ProtocolAgent):
 
     def update_rate(self, loss_event=False):
         min_rate = self.get_min_rate()
-        curr_rtt = self.rtt_history[-1]
-        rtt_ratio = curr_rtt / max(self.min_rtt, 1e-3)
+        curr_rtt = self.rtt_history[-1] if self.rtt_history else (self.min_rtt or 50.0)
+        base_rtt = self.min_rtt if self.min_rtt is not None else 50.0
+        rtt_ratio = curr_rtt / max(base_rtt, 1e-3)
+        flush_ratio = 1.0 + max(0.12, 3.5 / base_rtt)
         if loss_event:
-            factor = 0.558 if rtt_ratio > 1.12 else 0.85
+            factor = 0.558 if rtt_ratio > flush_ratio else 0.85
             self.rate = max(min_rate, self.rate * factor)
             return
         grad_1 = curr_rtt - self.rtt_history[-2] if len(self.rtt_history) >= 2 else 0.0
         target = max(self.window) if self.window else self.est_delivery_rate
-        if grad_1 <= 0 and rtt_ratio < 1.12:
+        if grad_1 <= 0 and rtt_ratio < flush_ratio:
             self.rate += 0.05
         else:
-            self.rate += (target - self.rate) * 0.14
+            drain_target = 0.94 * target if rtt_ratio >= flush_ratio else target
+            self.rate += (drain_target - self.rate) * 0.14
 
 
 class ReferenceNonMLAgent(PacingVariantD1_CoincidentRise):
@@ -179,12 +184,13 @@ class ReferenceVegasAgent(ProtocolAgent):
         if loss_event:
             self.rate = max(min_rate, self.rate * 0.50)
             return
-        curr_rtt = self.rtt_history[-1]
-        expected_rate = self.rate * (self.min_rtt / max(curr_rtt, 1e-3))
-        diff = self.rate - expected_rate
-        if diff < self.alpha:
+        curr_rtt = self.rtt_history[-1] if self.rtt_history else (self.min_rtt or 50.0)
+        base_rtt = self.min_rtt if self.min_rtt is not None else 50.0
+        # Physical queue backlog estimate in packets: rate * queue_delay / step_duration
+        queue_backlog = self.rate * max(0.0, curr_rtt - base_rtt) / base_rtt * 5.0
+        if queue_backlog < self.alpha:
             self.rate += 0.05
-        elif diff > self.beta:
+        elif queue_backlog > self.beta:
             self.rate = max(min_rate, self.rate - 0.05)
 
 
@@ -268,8 +274,9 @@ class LossClassifierAgentBase(PacingVariantD1_CoincidentRise):
 
     def update_rate(self, loss_event=False):
         min_rate = self.get_min_rate()
-        curr_rtt = self.rtt_history[-1]
-        rtt_ratio = curr_rtt / max(self.min_rtt, 1e-3)
+        curr_rtt = self.rtt_history[-1] if self.rtt_history else (self.min_rtt or 50.0)
+        min_rtt = self.min_rtt if self.min_rtt is not None else 50.0
+        rtt_ratio = curr_rtt / max(min_rtt, 1e-3)
         grad_1 = curr_rtt - self.rtt_history[-2] if len(self.rtt_history) >= 2 else 0.0
         grad_3 = (curr_rtt - self.rtt_history[-4]) / 3.0 if len(self.rtt_history) >= 4 else grad_1
         grad_5 = (curr_rtt - self.rtt_history[-6]) / 5.0 if len(self.rtt_history) >= 6 else grad_1
@@ -298,7 +305,8 @@ class LossClassifierAgentBase(PacingVariantD1_CoincidentRise):
         if grad_1 <= 0 and rtt_ratio < 1.12:
             self.rate += 0.05
         else:
-            self.rate += (target - self.rate) * 0.14
+            drain_target = 0.94 * target if rtt_ratio >= 1.12 else target
+            self.rate += (drain_target - self.rate) * 0.14
 
 
 class CapacityAgentBase(ProtocolAgent):
@@ -344,8 +352,9 @@ class CapacityAgentBase(ProtocolAgent):
 
     def update_rate(self, loss_event=False):
         min_rate = self.get_min_rate()
-        curr_rtt = self.rtt_history[-1]
-        rtt_ratio = curr_rtt / max(self.min_rtt, 1e-3)
+        curr_rtt = self.rtt_history[-1] if self.rtt_history else (self.min_rtt or 50.0)
+        min_rtt = self.min_rtt if self.min_rtt is not None else 50.0
+        rtt_ratio = curr_rtt / max(min_rtt, 1e-3)
         grad_1 = curr_rtt - self.rtt_history[-2] if len(self.rtt_history) >= 2 else 0.0
         grad_3 = (curr_rtt - self.rtt_history[-4]) / 3.0 if len(self.rtt_history) >= 4 else grad_1
         grad_5 = (curr_rtt - self.rtt_history[-6]) / 5.0 if len(self.rtt_history) >= 6 else grad_1
@@ -436,8 +445,9 @@ class OpponentAgentBase(PacingVariantD1_CoincidentRise):
 
     def update_rate(self, loss_event=False):
         min_rate = self.get_min_rate()
-        curr_rtt = self.rtt_history[-1]
-        rtt_ratio = curr_rtt / max(self.min_rtt, 1e-3)
+        curr_rtt = self.rtt_history[-1] if self.rtt_history else (self.min_rtt or 50.0)
+        min_rtt = self.min_rtt if self.min_rtt is not None else 50.0
+        rtt_ratio = curr_rtt / max(min_rtt, 1e-3)
         grad_1 = curr_rtt - self.rtt_history[-2] if len(self.rtt_history) >= 2 else 0.0
 
         if self.in_competitive_mode:
@@ -456,4 +466,5 @@ class OpponentAgentBase(PacingVariantD1_CoincidentRise):
         if grad_1 <= 0 and rtt_ratio < 1.12:
             self.rate += 0.05
         else:
-            self.rate += (target - self.rate) * 0.14
+            drain_target = 0.94 * target if rtt_ratio >= 1.12 else target
+            self.rate += (drain_target - self.rate) * 0.14

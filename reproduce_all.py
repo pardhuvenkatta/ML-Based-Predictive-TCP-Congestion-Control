@@ -16,22 +16,21 @@ Usage:
     python reproduce_all.py --all --quick
 """
 
-import sys
 import argparse
+import sys
 import time
 
 from src.experiments import (
-    run_lofo_audit,
-    run_pareto_frontiers,
-    run_long_rtt_grid,
-    run_regression_50ms,
-    run_master_scorecard,
-    run_copa_robustness,
-    run_multi_flow_scaling,
+    run_all,
     run_bbr_competition,
-    run_all
+    run_copa_robustness,
+    run_lofo_audit,
+    run_long_rtt_grid,
+    run_master_scorecard,
+    run_multi_flow_scaling,
+    run_pareto_frontiers,
+    run_regression_50ms,
 )
-
 
 EXPERIMENT_MAP = {
     "lofo_audit": run_lofo_audit,
@@ -42,7 +41,7 @@ EXPERIMENT_MAP = {
     "copa_robustness": run_copa_robustness,
     "multi_flow_scaling": run_multi_flow_scaling,
     "bbr_competition": run_bbr_competition,
-    "all": run_all
+    "all": run_all,
 }
 
 
@@ -51,26 +50,27 @@ def main():
         description="Reproduce ML-TCP scientific audit experiments and benchmark suites."
     )
     parser.add_argument(
-        "--experiment", "-e",
+        "--experiment",
+        "-e",
         choices=list(EXPERIMENT_MAP.keys()),
         default=None,
-        help="Specific experiment to execute."
+        help="Specific experiment to execute.",
     )
     parser.add_argument(
-        "--all", "-a",
+        "--all", "-a", action="store_true", help="Execute all experiments sequentially."
+    )
+    parser.add_argument(
+        "--quick",
+        "-q",
         action="store_true",
-        help="Execute all experiments sequentially."
+        help="Run fast verification mode with fewer seeds/steps.",
     )
     parser.add_argument(
-        "--quick", "-q",
-        action="store_true",
-        help="Run fast verification mode with fewer seeds/steps."
-    )
-    parser.add_argument(
-        "--seeds", "-s",
+        "--seeds",
+        "-s",
         type=str,
         default=None,
-        help="Comma-separated random seeds (e.g., '42,43,44,45')."
+        help="Comma-separated random seeds (e.g., '42,43,44,45').",
     )
 
     args = parser.parse_args()
@@ -84,7 +84,7 @@ def main():
     if target_exp is None:
         parser.print_help()
         print("\nAvailable experiments:")
-        for name in EXPERIMENT_MAP.keys():
+        for name in EXPERIMENT_MAP:
             print(f"  - {name}")
         sys.exit(0)
 
@@ -92,11 +92,14 @@ def main():
     print(f"Starting reproduction of: '{target_exp}' (quick={args.quick})...")
 
     func = EXPERIMENT_MAP[target_exp]
-    if target_exp == "all":
+    if target_exp == "all" or target_exp in ["lofo_audit", "pareto_frontiers"]:
         func(quick=args.quick)
-    elif target_exp in ["lofo_audit", "pareto_frontiers"]:
-        func(quick=args.quick)
-    elif target_exp in ["long_rtt_grid", "copa_robustness", "multi_flow_scaling", "bbr_competition"]:
+    elif target_exp in [
+        "long_rtt_grid",
+        "copa_robustness",
+        "multi_flow_scaling",
+        "bbr_competition",
+    ]:
         if custom_seeds:
             func(seeds=custom_seeds)
         else:

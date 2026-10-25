@@ -5,10 +5,17 @@ Strictly adheres to zero ground-truth signal leakage: sender-observable signals 
 
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
 
-from src.controllers import ReferenceNonMLAgent, RenoAgent, CubicAgent, AuditedBBRAgent, CopaAgent, ReferenceVegasAgent
+from src.controllers import (
+    AuditedBBRAgent,
+    CopaAgent,
+    CubicAgent,
+    ReferenceNonMLAgent,
+    ReferenceVegasAgent,
+    RenoAgent,
+)
 from src.sim import load_mahimahi_trace
 
 
@@ -27,7 +34,7 @@ def collect_loss_data(families_to_include, seeds=None):
             ag.recent_losses = [0] * 6
             queue = 0.0
             ge_state = 0
-            
+
             for t in range(2500):
                 rate = max(0.02, ag.rate)
                 is_wireless = False
@@ -59,11 +66,35 @@ def collect_loss_data(families_to_include, seeds=None):
 
                 if loss_event:
                     rtt_ratio = curr_rtt / max(ag.min_rtt, 1e-3)
-                    g1 = curr_rtt - ag.rtt_history[-2] if len(ag.rtt_history) >= 2 else 0.0
-                    g3 = (curr_rtt - ag.rtt_history[-4]) / 3.0 if len(ag.rtt_history) >= 4 else g1
-                    g5 = (curr_rtt - ag.rtt_history[-6]) / 5.0 if len(ag.rtt_history) >= 6 else g1
-                    deliv = max(ag.deliv_history) if ag.deliv_history else ag.est_delivery_rate
-                    feat = [rtt_ratio, g1, g3, g5, deliv, ag.rate, float(sum(ag.recent_losses))]
+                    g1 = (
+                        curr_rtt - ag.rtt_history[-2]
+                        if len(ag.rtt_history) >= 2
+                        else 0.0
+                    )
+                    g3 = (
+                        (curr_rtt - ag.rtt_history[-4]) / 3.0
+                        if len(ag.rtt_history) >= 4
+                        else g1
+                    )
+                    g5 = (
+                        (curr_rtt - ag.rtt_history[-6]) / 5.0
+                        if len(ag.rtt_history) >= 6
+                        else g1
+                    )
+                    deliv = (
+                        max(ag.deliv_history)
+                        if ag.deliv_history
+                        else ag.est_delivery_rate
+                    )
+                    feat = [
+                        rtt_ratio,
+                        g1,
+                        g3,
+                        g5,
+                        deliv,
+                        ag.rate,
+                        float(sum(ag.recent_losses)),
+                    ]
                     target = 1 if is_congestion else 0
                     X.append(feat)
                     y.append(target)
@@ -88,7 +119,9 @@ def collect_capacity_data(family, seeds=None):
                     st = rng.choice(4)
                 cap_trace[t] = state_caps[st] + rng.normal(0, 0.08)
         elif family == "mahimahi":
-            start_idx = int(rng.uniform(0, max(1, len(full_mahimahi) - total_steps - 50)))
+            start_idx = int(
+                rng.uniform(0, max(1, len(full_mahimahi) - total_steps - 50))
+            )
             cap_trace = full_mahimahi[start_idx : start_idx + total_steps]
         elif family == "step":
             st_t = rng.uniform(700, 1400)
@@ -100,25 +133,40 @@ def collect_capacity_data(family, seeds=None):
             for t in range(total_steps):
                 cap_trace[t] = 3.0 + 1.5 * np.sin(fr * t + ph) + rng.normal(0, 0.05)
         cap_trace = np.clip(cap_trace, 0.5, 12.0)
-        
+
         ag = ReferenceNonMLAgent("CollectCap")
         ag.rate = 1.05
         queue = 0.0
         for t in range(total_steps - 6):
             queue += ag.rate
-            if queue > 50.0:
-                queue = 50.0
+            queue = min(queue, 50.0)
             proc = min(queue, cap_trace[t])
             queue -= proc
             curr_rtt = 50.0 + queue * 1.9 + rng.normal(0, 0.8)
             ag.observe_ack(curr_rtt, False, proc)
             ag.update_rate(False)
-            
+
             rtt_ratio = curr_rtt / max(ag.min_rtt, 1e-3)
             g1 = curr_rtt - ag.rtt_history[-2] if len(ag.rtt_history) >= 2 else 0.0
-            g5 = (curr_rtt - ag.rtt_history[-6]) / 5.0 if len(ag.rtt_history) >= 6 else g1
-            deliv_grad = ag.est_delivery_rate - (ag.deliv_history[-2] if len(ag.deliv_history) >= 2 else ag.est_delivery_rate)
-            feat = [rtt_ratio, g1, g5, ag.est_delivery_rate, ag.rate, deliv_grad, float(sum(ag.recent_losses))]
+            g5 = (
+                (curr_rtt - ag.rtt_history[-6]) / 5.0
+                if len(ag.rtt_history) >= 6
+                else g1
+            )
+            deliv_grad = ag.est_delivery_rate - (
+                ag.deliv_history[-2]
+                if len(ag.deliv_history) >= 2
+                else ag.est_delivery_rate
+            )
+            feat = [
+                rtt_ratio,
+                g1,
+                g5,
+                ag.est_delivery_rate,
+                ag.rate,
+                deliv_grad,
+                float(sum(ag.recent_losses)),
+            ]
             future_cap = cap_trace[t + 5]
             X.append(feat)
             y.append(future_cap)
@@ -158,22 +206,27 @@ def collect_opponent_data(opponent_type, seeds=None):
         for t in range(2000):
             r_host = max(0.02, ag.rate)
             r_opp = max(0.02, opp.rate) if opp is not None else 0.0
-            queue += (r_host + r_opp)
-            if queue > 50.0:
-                queue = 50.0
+            queue += r_host + r_opp
+            queue = min(queue, 50.0)
             proc = min(queue, 6.0)
             queue -= proc
             curr_rtt = 50.0 + queue * 1.9 + rng.normal(0, 0.8)
             ag.observe_ack(curr_rtt, False, proc * (r_host / max(r_host + r_opp, 1e-3)))
             ag.update_rate(False)
             if opp is not None:
-                opp.observe_ack(curr_rtt, False, proc * (r_opp / max(r_host + r_opp, 1e-3)))
+                opp.observe_ack(
+                    curr_rtt, False, proc * (r_opp / max(r_host + r_opp, 1e-3))
+                )
                 opp.update_rate(False)
 
             if t % 5 == 0 and t > 50:
                 rtt_ratio = curr_rtt / max(ag.min_rtt, 1e-3)
                 g1 = curr_rtt - ag.rtt_history[-2] if len(ag.rtt_history) >= 2 else 0.0
-                g5 = (curr_rtt - ag.rtt_history[-6]) / 5.0 if len(ag.rtt_history) >= 6 else g1
+                g5 = (
+                    (curr_rtt - ag.rtt_history[-6]) / 5.0
+                    if len(ag.rtt_history) >= 6
+                    else g1
+                )
                 rate_ratio = ag.rate / max(ag.est_delivery_rate, 0.1)
                 feat = [rtt_ratio, g1, g5, rate_ratio, float(ag.standing_queue_steps)]
                 X.append(feat)
@@ -185,20 +238,28 @@ def train_lofo_loss_models():
     """Trains LOFO loss classification models and baseline classifiers."""
     X_bernoulli, y_bernoulli = collect_loss_data(["bernoulli"])
     X_ge, y_ge = collect_loss_data(["gilbert_elliott"])
-    
+
     # Model without Gilbert-Elliott
-    rf_no_ge = RandomForestClassifier(n_estimators=30, max_depth=6, random_state=42).fit(X_bernoulli, y_bernoulli)
-    tree_no_ge = DecisionTreeClassifier(max_depth=3, random_state=42).fit(X_bernoulli, y_bernoulli)
-    lr_no_ge = LogisticRegression(max_iter=500, random_state=42).fit(X_bernoulli, y_bernoulli)
-    
+    rf_no_ge = RandomForestClassifier(
+        n_estimators=30, max_depth=6, random_state=42
+    ).fit(X_bernoulli, y_bernoulli)
+    tree_no_ge = DecisionTreeClassifier(max_depth=3, random_state=42).fit(
+        X_bernoulli, y_bernoulli
+    )
+    lr_no_ge = LogisticRegression(max_iter=500, random_state=42).fit(
+        X_bernoulli, y_bernoulli
+    )
+
     # Model without Bernoulli
-    rf_no_bern = RandomForestClassifier(n_estimators=30, max_depth=6, random_state=42).fit(X_ge, y_ge)
+    rf_no_bern = RandomForestClassifier(
+        n_estimators=30, max_depth=6, random_state=42
+    ).fit(X_ge, y_ge)
     tree_no_bern = DecisionTreeClassifier(max_depth=3, random_state=42).fit(X_ge, y_ge)
     lr_no_bern = LogisticRegression(max_iter=500, random_state=42).fit(X_ge, y_ge)
-    
+
     return {
         "held_out_ge": {"rf": rf_no_ge, "tree": tree_no_ge, "lr": lr_no_ge},
-        "held_out_bern": {"rf": rf_no_bern, "tree": tree_no_bern, "lr": lr_no_bern}
+        "held_out_bern": {"rf": rf_no_bern, "tree": tree_no_bern, "lr": lr_no_bern},
     }
 
 
@@ -218,7 +279,9 @@ def train_lofo_capacity_models():
                 y_tr_list.append(cap_data[f][1])
         X_tr = np.vstack(X_tr_list)
         y_tr = np.concatenate(y_tr_list)
-        lofo_rf_models[held_out_fam] = RandomForestRegressor(n_estimators=25, max_depth=6, random_state=42).fit(X_tr, y_tr)
+        lofo_rf_models[held_out_fam] = RandomForestRegressor(
+            n_estimators=25, max_depth=6, random_state=42
+        ).fit(X_tr, y_tr)
     return lofo_rf_models
 
 
@@ -239,18 +302,24 @@ def train_lofo_opponent_models():
                 y_list.append(opp_datasets[opp][1])
         X_tr = np.vstack(X_list)
         y_tr = np.concatenate(y_list)
-        lofo_opp_rf[held_out_opp] = RandomForestClassifier(n_estimators=25, max_depth=6, random_state=42).fit(X_tr, y_tr)
-        lofo_opp_lr[held_out_opp] = LogisticRegression(max_iter=500, random_state=42).fit(X_tr, y_tr)
+        lofo_opp_rf[held_out_opp] = RandomForestClassifier(
+            n_estimators=25, max_depth=6, random_state=42
+        ).fit(X_tr, y_tr)
+        lofo_opp_lr[held_out_opp] = LogisticRegression(
+            max_iter=500, random_state=42
+        ).fit(X_tr, y_tr)
 
     # Master model for Alone / Vegas / Self evaluation
     X_all = np.vstack([opp_datasets[o][0] for o in opp_list])
     y_all = np.concatenate([opp_datasets[o][1] for o in opp_list])
-    rf_master = RandomForestClassifier(n_estimators=25, max_depth=6, random_state=42).fit(X_all, y_all)
+    rf_master = RandomForestClassifier(
+        n_estimators=25, max_depth=6, random_state=42
+    ).fit(X_all, y_all)
     lr_master = LogisticRegression(max_iter=500, random_state=42).fit(X_all, y_all)
 
     return {
         "lofo_rf": lofo_opp_rf,
         "lofo_lr": lofo_opp_lr,
         "master_rf": rf_master,
-        "master_lr": lr_master
+        "master_lr": lr_master,
     }

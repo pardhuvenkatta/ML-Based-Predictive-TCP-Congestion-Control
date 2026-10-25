@@ -11,16 +11,16 @@ Validates:
 """
 
 import math
+
 import numpy as np
-import pytest
 from scipy import stats
 
 from src.analysis import (
     calc_u,
-    paired_test,
-    holm_bonferroni,
     check_practical_significance,
     compute_pareto_front,
+    holm_bonferroni,
+    paired_test,
 )
 
 
@@ -28,7 +28,7 @@ def test_calc_u_properties():
     """Verify Kleinrock generalized utility Ud math and monotonicity."""
     gp = 2.5
     rtt = 50.0
-    
+
     # Hand calculation: ln(2.5) - 1.0 * ln(50.0)
     expected_u10 = math.log(2.5) - 1.0 * math.log(50.0)
     assert math.isclose(calc_u(gp, rtt, d=1.0), expected_u10, rel_tol=1e-9)
@@ -51,7 +51,11 @@ def test_paired_t_test_against_scipy():
     res = paired_test(test_vals, ref_vals)
     scipy_res = stats.ttest_rel(test_vals, ref_vals)
 
-    assert math.isclose(res["mean_diff"], float(np.mean(np.array(test_vals) - np.array(ref_vals))), rel_tol=1e-9)
+    assert math.isclose(
+        res["mean_diff"],
+        float(np.mean(np.array(test_vals) - np.array(ref_vals))),
+        rel_tol=1e-9,
+    )
     assert math.isclose(res["p_val"], float(scipy_res.pvalue), rel_tol=1e-7)
 
     # 95% Confidence Interval check
@@ -60,8 +64,12 @@ def test_paired_t_test_against_scipy():
     expected_se = np.std(diffs, ddof=1) / np.sqrt(n)
     t_crit = stats.t.ppf(0.975, df=n - 1)
     assert math.isclose(res["se_diff"], expected_se, rel_tol=1e-9)
-    assert math.isclose(res["ci_low"], float(np.mean(diffs) - t_crit * expected_se), rel_tol=1e-9)
-    assert math.isclose(res["ci_high"], float(np.mean(diffs) + t_crit * expected_se), rel_tol=1e-9)
+    assert math.isclose(
+        res["ci_low"], float(np.mean(diffs) - t_crit * expected_se), rel_tol=1e-9
+    )
+    assert math.isclose(
+        res["ci_high"], float(np.mean(diffs) + t_crit * expected_se), rel_tol=1e-9
+    )
 
 
 def test_cohen_d_effect_size():
@@ -96,40 +104,58 @@ def test_holm_bonferroni_multi_test_correction():
 
 def test_practical_significance_audit():
     """Verify practical significance classification across all decision branches."""
-    ref_u = -1.5
-    
     # 1. Genuine Win: CI strictly > 0 AND effect >= 1.0% across d=0.5, 1.0, 2.0
-    win, desc, pct = check_practical_significance(
-        diff_u05=0.05, diff_u10=0.05, diff_u20=0.05,
-        ci_low_u10=0.02, ci_high_u10=0.08,
-        ref_u05=-1.0, ref_u10=-1.5, ref_u20=-2.0
+    win, desc, _pct = check_practical_significance(
+        diff_u05=0.05,
+        diff_u10=0.05,
+        diff_u20=0.05,
+        ci_low_u10=0.02,
+        ci_high_u10=0.08,
+        ref_u05=-1.0,
+        ref_u10=-1.5,
+        ref_u20=-2.0,
     )
     assert win is True
     assert "Statistically Outperforms" in desc
 
     # 2. Sub-threshold: CI strictly > 0, but effect < 1.0%
     sub, desc_sub, _ = check_practical_significance(
-        diff_u05=0.001, diff_u10=0.001, diff_u20=0.001,
-        ci_low_u10=0.0005, ci_high_u10=0.0015,
-        ref_u05=-1.0, ref_u10=-1.5, ref_u20=-2.0
+        diff_u05=0.001,
+        diff_u10=0.001,
+        diff_u20=0.001,
+        ci_low_u10=0.0005,
+        ci_high_u10=0.0015,
+        ref_u05=-1.0,
+        ref_u10=-1.5,
+        ref_u20=-2.0,
     )
     assert sub is False
     assert "Sub-Threshold Difference" in desc_sub
 
     # 3. Inconclusive: CI overlaps zero
     tie, desc_tie, _ = check_practical_significance(
-        diff_u05=0.02, diff_u10=0.02, diff_u20=0.02,
-        ci_low_u10=-0.01, ci_high_u10=0.05,
-        ref_u05=-1.0, ref_u10=-1.5, ref_u20=-2.0
+        diff_u05=0.02,
+        diff_u10=0.02,
+        diff_u20=0.02,
+        ci_low_u10=-0.01,
+        ci_high_u10=0.05,
+        ref_u05=-1.0,
+        ref_u10=-1.5,
+        ref_u20=-2.0,
     )
     assert tie is False
     assert "Inconclusive" in desc_tie
 
     # 4. Inferior: CI strictly negative
     inf, desc_inf, _ = check_practical_significance(
-        diff_u05=-0.05, diff_u10=-0.05, diff_u20=-0.05,
-        ci_low_u10=-0.08, ci_high_u10=-0.02,
-        ref_u05=-1.0, ref_u10=-1.5, ref_u20=-2.0
+        diff_u05=-0.05,
+        diff_u10=-0.05,
+        diff_u20=-0.05,
+        ci_low_u10=-0.08,
+        ci_high_u10=-0.02,
+        ref_u05=-1.0,
+        ref_u10=-1.5,
+        ref_u20=-2.0,
     )
     assert inf is False
     assert "Inferior" in desc_inf

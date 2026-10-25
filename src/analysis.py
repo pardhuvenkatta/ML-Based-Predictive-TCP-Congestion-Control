@@ -40,7 +40,7 @@ def paired_test(test_vals, ref_vals):
         "ci_low": ci_low,
         "ci_high": ci_high,
         "p_val": p_val,
-        "cohen_d": cohen_d
+        "cohen_d": cohen_d,
     }
 
 
@@ -53,7 +53,7 @@ def holm_bonferroni(p_values):
     m = len(p_vals)
     sorted_indices = np.argsort(p_vals)
     adj_p = np.zeros(m)
-    
+
     current_max = 0.0
     for rank, idx in enumerate(sorted_indices):
         multiplier = m - rank
@@ -64,18 +64,20 @@ def holm_bonferroni(p_values):
     return adj_p.tolist()
 
 
-def check_practical_significance(diff_u05, diff_u10, diff_u20, ci_low_u10, ci_high_u10, ref_u05, ref_u10, ref_u20):
+def check_practical_significance(
+    diff_u05, diff_u10, diff_u20, ci_low_u10, ci_high_u10, ref_u05, ref_u10, ref_u20
+):
     """
     Validates practical significance:
     Requires 95% CI to strictly exclude zero AND relative effect >= 1.0% across all d in {0.5, 1.0, 2.0}.
     """
-    ci_excludes_zero = (ci_low_u10 > 0 and ci_high_u10 > 0)
+    ci_excludes_zero = ci_low_u10 > 0 and ci_high_u10 > 0
     pct_u05 = (diff_u05 / abs(ref_u05)) * 100.0 if abs(ref_u05) > 1e-6 else 0.0
     pct_u10 = (diff_u10 / abs(ref_u10)) * 100.0 if abs(ref_u10) > 1e-6 else 0.0
     pct_u20 = (diff_u20 / abs(ref_u20)) * 100.0 if abs(ref_u20) > 1e-6 else 0.0
-    
+
     exceeds_1pct = (pct_u05 >= 1.0) and (pct_u10 >= 1.0) and (pct_u20 >= 1.0)
-    
+
     if ci_excludes_zero and exceeds_1pct:
         return True, "Statistically Outperforms (>=1% Effect & CI Excludes 0)", pct_u10
     elif ci_excludes_zero and not exceeds_1pct:
@@ -93,7 +95,7 @@ def compute_pareto_front(goodputs, rtts):
     """
     points = sorted(zip(goodputs, rtts), key=lambda x: (x[1], -x[0]))
     frontier = []
-    max_gp = -float('inf')
+    max_gp = -float("inf")
     for gp, rtt in points:
         if gp > max_gp:
             frontier.append((gp, rtt))

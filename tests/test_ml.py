@@ -8,13 +8,11 @@ Validates:
 5. Absence of mutable default state bugs in model training utilities.
 """
 
-import math
 import numpy as np
-import pytest
 
 from src.models import (
-    collect_loss_data,
     collect_capacity_data,
+    collect_loss_data,
     collect_opponent_data,
     train_lofo_loss_models,
 )
@@ -23,7 +21,7 @@ from src.models import (
 def test_loss_data_collection_shapes_and_features():
     """Verify loss feature extraction produces valid non-NaN matrices."""
     X, y = collect_loss_data(["bernoulli"], seeds=[42])
-    
+
     assert len(X) > 0
     assert len(X) == len(y)
     assert X.shape[1] == 7  # 7 observable features
@@ -36,7 +34,7 @@ def test_loss_data_collection_shapes_and_features():
 def test_capacity_data_collection_temporal_causality():
     """Verify capacity forecaster features depend strictly on past observations."""
     X, y = collect_capacity_data("step", seeds=[42])
-    
+
     assert len(X) > 0
     assert len(X) == len(y)
     assert X.shape[1] == 7
@@ -48,12 +46,12 @@ def test_capacity_data_collection_temporal_causality():
 
 def test_opponent_data_collection_classes():
     """Verify opponent data collection produces multi-class targets."""
-    X_reno, y_reno = collect_opponent_data("reno", seeds=[42])
-    X_bbr, y_bbr = collect_opponent_data("bbr", seeds=[42])
-    X_alone, y_alone = collect_opponent_data("alone", seeds=[42])
+    _X_reno, y_reno = collect_opponent_data("reno", seeds=[42])
+    _X_bbr, y_bbr = collect_opponent_data("bbr", seeds=[42])
+    _X_alone, y_alone = collect_opponent_data("alone", seeds=[42])
 
-    assert (y_reno == 1).all()   # Class 1: Loss-based
-    assert (y_bbr == 2).all()    # Class 2: Rate-based
+    assert (y_reno == 1).all()  # Class 1: Loss-based
+    assert (y_bbr == 2).all()  # Class 2: Rate-based
     assert (y_alone == 0).all()  # Class 0: Alone
 
 
@@ -62,7 +60,7 @@ def test_lofo_loss_model_separation():
     models_dict = train_lofo_loss_models()
     assert "held_out_ge" in models_dict
     assert "held_out_bern" in models_dict
-    
+
     # Model held_out_ge was trained on Bernoulli only
     rf_no_ge = models_dict["held_out_ge"]["rf"]
     # Model can predict on arbitrary test vectors of shape (N, 7)

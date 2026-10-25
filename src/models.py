@@ -43,11 +43,11 @@ def collect_loss_data(families_to_include, seeds=None):
                     if ge_state == 1 and rng.uniform() < 0.20:
                         is_wireless = True
 
-                cap = 3.0 if (t % 600 < 400) else 1.2
+                cap = 3.0 if (t % 500 < 350) else 0.8
                 is_congestion = False
                 queue += rate
-                if queue > 30.0:
-                    queue = 30.0
+                if queue > 10.0:
+                    queue = 10.0
                     is_congestion = True
 
                 loss_event = is_congestion or is_wireless

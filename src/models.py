@@ -3,18 +3,19 @@ Model Architectures, Feature Extractors, and LOFO Training Pipelines for ML-TCP
 Strictly adheres to zero ground-truth signal leakage: sender-observable signals only.
 """
 
-import os
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.linear_model import LogisticRegression, Ridge
+from sklearn.linear_model import LogisticRegression
 
 from src.controllers import ReferenceNonMLAgent, RenoAgent, CubicAgent, AuditedBBRAgent, CopaAgent, ReferenceVegasAgent
 from src.sim import load_mahimahi_trace
 
 
-def collect_loss_data(families_to_include, seeds=[10, 11, 12, 13, 14, 15]):
+def collect_loss_data(families_to_include, seeds=None):
     """Collects training pool for loss classification LOFO evaluation."""
+    if seeds is None:
+        seeds = [10, 11, 12, 13, 14, 15]
     X, y = [], []
     for s in seeds:
         for fam in families_to_include:
@@ -69,8 +70,10 @@ def collect_loss_data(families_to_include, seeds=[10, 11, 12, 13, 14, 15]):
     return np.array(X), np.array(y)
 
 
-def collect_capacity_data(family, seeds=[20, 21, 22, 23]):
+def collect_capacity_data(family, seeds=None):
     """Collects training pool for capacity prediction LOFO evaluation."""
+    if seeds is None:
+        seeds = [20, 21, 22, 23]
     X, y = [], []
     full_mahimahi = load_mahimahi_trace()
     for s in seeds:
@@ -99,7 +102,7 @@ def collect_capacity_data(family, seeds=[20, 21, 22, 23]):
         cap_trace = np.clip(cap_trace, 0.5, 12.0)
         
         ag = ReferenceNonMLAgent("CollectCap")
-        ag.rate = float(cap_trace[0])
+        ag.rate = 1.05
         queue = 0.0
         for t in range(total_steps - 6):
             queue += ag.rate
@@ -122,8 +125,10 @@ def collect_capacity_data(family, seeds=[20, 21, 22, 23]):
     return np.array(X), np.array(y)
 
 
-def collect_opponent_data(opponent_type, seeds=[30, 31, 32, 33]):
+def collect_opponent_data(opponent_type, seeds=None):
     """Collects training pool for opponent classifier LOFO evaluation."""
+    if seeds is None:
+        seeds = [30, 31, 32, 33]
     X, y = [], []
     for s in seeds:
         rng = np.random.RandomState(s)

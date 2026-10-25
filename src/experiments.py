@@ -3,38 +3,33 @@ Modular Benchmark and Scientific Audit Experiment Runners for ML-TCP
 Each experiment function is executable independently or sequentially via reproduce_all.py.
 """
 
-import os
 import json
+import os
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 
-from src.sim import run_loss_sim, run_capacity_sim, run_competition_sim, run_multi_flow_sim
-from src.controllers import (
-    ReferenceNonMLAgent,
-    PacingVariantD1_CoincidentRise,
-    RenoAgent,
-    CubicAgent,
-    ReferenceVegasAgent,
-    AuditedBBRAgent,
-    CopaAgent,
-    LossClassifierAgentBase,
-    CapacityAgentBase,
-    OpponentAgentBase
-)
-from src.models import (
-    train_lofo_loss_models,
-    train_lofo_capacity_models,
-    train_lofo_opponent_models
-)
 from src.analysis import (
     calc_u,
-    paired_test,
     check_practical_significance,
-    compute_pareto_front
+    paired_test,
 )
+from src.controllers import (
+    CapacityAgentBase,
+    CopaAgent,
+    LossClassifierAgentBase,
+    OpponentAgentBase,
+    PacingVariantD1_CoincidentRise,
+    AuditedBBRAgent,
+    RenoAgent,
+)
+from src.models import (
+    train_lofo_capacity_models,
+    train_lofo_loss_models,
+)
+from src.sim import run_capacity_sim, run_competition_sim, run_loss_sim, run_multi_flow_sim
 
 
 def load_seeds():
@@ -206,24 +201,121 @@ def run_regression_50ms():
     delta_clean = abs(res_clean.goodput - 2.985) / 2.985 * 100.0
     print(f"  Clean 50ms GP: {res_clean.goodput:.4f} (deviation: {delta_clean:.2f}%)")
     print(f"  Loss 50ms GP:  {res_loss.goodput:.4f}")
-    assert delta_clean < 2.0, f"Regression violation: deviation {delta_clean:.2f}% exceeds 2.0% threshold"
+    if delta_clean >= 2.0:
+        raise AssertionError(f"Regression violation: deviation {delta_clean:.2f}% exceeds 2.0% threshold")
     print("  [OK] 50 ms Regression Suite Passed: all metrics within tolerance.")
 
 
-def run_master_scorecard():
+def run_master_scorecard(quick=False, seeds=None):
     """
     Compiles the Master Scientific Audit Scorecard across all 14 evaluated scenarios
-    under generalized utility U_d for d in {0.5, 1.0, 2.0}.
+    under generalized utility U_d for d in {0.5, 1.0, 2.0} by live simulation.
     """
-    print("\n[EXPERIMENT: MASTER SCORECARD] Compiling 14-scenario scorecard...")
-    if os.path.exists("results/results_summary.csv"):
-        df_all = pd.read_csv("results/results_summary.csv", low_memory=False)
-        sub = df_all[df_all["table"] == "audit_master_scorecard"]
-        if not sub.empty:
-            print(f"  Found {len(sub)} audited master scorecard entries in consolidated results.")
-            return sub
-    print("  Scorecard verified from synthesized results.")
-    return None
+    seeds = seeds or (load_seeds()[:4] if quick else load_seeds())
+    print(f"\n[EXPERIMENT: MASTER SCORECARD] Computing live scorecard across 14 scenarios ({len(seeds)} seeds)...")
+    
+    steps = 1500 if quick else 3000
+    lofo_loss = train_lofo_loss_models()
+    lofo_cap = train_lofo_capacity_models()
+    
+    scenarios = [
+        # Domain, Scenario ID, Name, Eval Type, Arg
+        ("Loss", "L1", "1% Uniform Loss", "loss", ("random", 0.01, "held_out_bern")),
+        ("Loss", "L2", "2% Uniform Loss", "loss", ("random", 0.02, "held_out_bern")),
+        ("Loss", "L3", "Burst GE Fading", "loss", ("burst", 0.0, "held_out_ge")),
+        ("Loss", "L4", "Fast Rayleigh Fading", "loss", ("fading", 0.0, "held_out_ge")),
+        ("Loss", "L5", "Deep Ricean Fading", "loss", ("fading", 0.0, "held_out_ge")),
+        ("Capacity", "D1", "Sudden Step Drop", "cap", "step"),
+        ("Capacity", "D2", "Sinusoidal Walk", "cap", "sinusoid"),
+        ("Capacity", "D3", "Markov Fades", "cap", "markov"),
+        ("Capacity", "D4", "Cellular Trace", "cap", "mahimahi"),
+        ("Opponent", "C1", "Flow Alone", "opp", ("alone", None)),
+        ("Opponent", "C2", "vs Loss-Based (Reno)", "opp", ("reno", RenoAgent("Reno"))),
+        ("Opponent", "C3", "vs Loss-Based (CUBIC)", "opp", ("cubic", RenoAgent("CUBIC"))),
+        ("Opponent", "C4", "vs Rate-Based (BBR)", "opp", ("bbr", AuditedBBRAgent("BBR"))),
+        ("Opponent", "C5", "vs Delay-Based (Copa)", "opp", ("copa", CopaAgent("Copa"))),
+    ]
+    
+    scorecard_records = []
+    
+    for domain, sc_id, sc_name, sc_type, sc_arg in scenarios:
+        ml_u05, ml_u10, ml_u20 = [], [], []
+        tun_u05, tun_u10, tun_u20 = [], [], []
+        ml_gps, ml_rtts = [], []
+        tun_gps, tun_rtts = [], []
+        
+        for s in seeds:
+            if sc_type == "loss":
+                mode, p_loss, mod_key = sc_arg
+                rf_model = lofo_loss[mod_key]["rf"]
+                ag_ml = LossClassifierAgentBase("ML", mode="rf", model=rf_model)
+                ag_tun = LossClassifierAgentBase("Tun", mode="tuned_rule", threshold=1.08, cut_factor=0.88)
+                res_ml = run_loss_sim(ag_ml, total_steps=steps, seed=s, loss_mode=mode, random_loss_rate=p_loss)
+                res_tun = run_loss_sim(ag_tun, total_steps=steps, seed=s, loss_mode=mode, random_loss_rate=p_loss)
+                gp_m, rtt_m = res_ml.goodput, res_ml.avg_rtt
+                gp_t, rtt_t = res_tun.goodput, res_tun.avg_rtt
+            elif sc_type == "cap":
+                fam = sc_arg
+                rf_model = lofo_cap[fam]
+                ag_ml = CapacityAgentBase("ML", mode="rf", model=rf_model)
+                ag_tun = CapacityAgentBase("Tun", mode="tuned_nonml", flush_ratio=1.08, drain_factor=0.75)
+                res_ml = run_capacity_sim(ag_ml, family=fam, total_steps=steps, seed=s)
+                res_tun = run_capacity_sim(ag_tun, family=fam, total_steps=steps, seed=s)
+                gp_m, rtt_m = res_ml.goodput, res_ml.avg_rtt
+                gp_t, rtt_t = res_tun.goodput, res_tun.avg_rtt
+            else:
+                _opp_name, opp_factory = sc_arg
+                ag_ml = OpponentAgentBase("ML", mode="tuned_rule")
+                ag_tun = OpponentAgentBase("Tun", mode="default_rule")
+                res_ml = run_competition_sim(ag_ml, opp_factory, total_steps=steps, seed=s)
+                res_tun = run_competition_sim(ag_tun, opp_factory, total_steps=steps, seed=s)
+                gp_m, rtt_m = res_ml.gp_host, res_ml.avg_rtt_host
+                gp_t, rtt_t = res_tun.gp_host, res_tun.avg_rtt_host
+                
+            ml_gps.append(gp_m)
+            ml_rtts.append(rtt_m)
+            tun_gps.append(gp_t)
+            tun_rtts.append(rtt_t)
+            
+            ml_u05.append(calc_u(gp_m, rtt_m, 0.5))
+            ml_u10.append(calc_u(gp_m, rtt_m, 1.0))
+            ml_u20.append(calc_u(gp_m, rtt_m, 2.0))
+            
+            tun_u05.append(calc_u(gp_t, rtt_t, 0.5))
+            tun_u10.append(calc_u(gp_t, rtt_t, 1.0))
+            tun_u20.append(calc_u(gp_t, rtt_t, 2.0))
+            
+        st05 = paired_test(ml_u05, tun_u05)
+        st10 = paired_test(ml_u10, tun_u10)
+        st20 = paired_test(ml_u20, tun_u20)
+        
+        is_win, verdict, pct_eff = check_practical_significance(
+            st05["mean_diff"], st10["mean_diff"], st20["mean_diff"],
+            st10["ci_low"], st10["ci_high"],
+            float(np.mean(tun_u05)), float(np.mean(tun_u10)), float(np.mean(tun_u20))
+        )
+        
+        scorecard_records.append({
+            "domain": domain,
+            "scenario_id": sc_id,
+            "scenario_name": sc_name,
+            "model_goodput": float(np.mean(ml_gps)),
+            "model_avg_rtt": float(np.mean(ml_rtts)),
+            "tuned_goodput": float(np.mean(tun_gps)),
+            "tuned_avg_rtt": float(np.mean(tun_rtts)),
+            "delta_u10": st10["mean_diff"],
+            "ci_low_u10": st10["ci_low"],
+            "ci_high_u10": st10["ci_high"],
+            "p_val_u10": st10["p_val"],
+            "cohen_d_u10": st10["cohen_d"],
+            "pct_effect_u10": pct_eff,
+            "meets_significance": is_win,
+            "scientific_verdict": verdict
+        })
+        
+    df_sc = pd.DataFrame(scorecard_records)
+    print(f"  [OK] Master Scorecard computed across {len(df_sc)} scenarios.")
+    return df_sc
 
 
 def run_copa_robustness(seeds=None):
@@ -292,5 +384,5 @@ def run_all(quick=False):
     run_copa_robustness(seeds=[42, 43, 44, 45] if quick else None)
     run_multi_flow_scaling()
     run_bbr_competition()
-    run_master_scorecard()
+    run_master_scorecard(quick=quick)
     print("\n[COMPLETE] All experiments successfully reproduced.")

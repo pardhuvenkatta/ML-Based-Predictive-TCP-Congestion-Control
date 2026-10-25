@@ -5,10 +5,7 @@ Cohen's d effect sizes, and practical significance validation.
 """
 
 import numpy as np
-import scipy.stats as stats
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+from scipy import stats
 
 
 def calc_u(goodput, avg_rtt, d=1.0):

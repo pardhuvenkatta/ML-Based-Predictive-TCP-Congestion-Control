@@ -2,6 +2,8 @@
 Unified Discrete-Event Physical Network Simulator
 Supports fixed links, capacity walks, wireless fading (Rayleigh, Ricean, Markov Gilbert-Elliot),
 buffer overflows, and multi-flow competition with strictly sender-observable telemetry.
+Enforces strict physical packet conservation at every step:
+sent = delivered + dropped + in_queue.
 """
 
 import os
@@ -25,7 +27,7 @@ def load_mahimahi_trace(trace_path="cellular_trace_mahimahi.log"):
 
 
 class SimResult(dict):
-    """Result object supporting both dictionary and tuple-like unpacking."""
+    """Result object supporting both dictionary and attribute-like access."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__dict__ = self
@@ -46,31 +48,41 @@ def run_loss_sim(
 ):
     """
     Simulates single-flow traffic over a link with non-congestion (wireless) and congestion drops.
+    Enforces strict packet conservation:
+    sent_total = delivered_total + congestion_loss + wireless_loss + queue.
     """
     rng = np.random.RandomState(seed)
     queue = 0.0
+    
+    # Initialize agent without oracle link capacity knowledge
     agent.rate = 1.05
     agent.min_rtt = None
     agent.rtt_history = []
     agent.deliv_history = []
     agent.recent_losses = [0] * 6
-    if hasattr(agent, 'window'): agent.window = []
-    if hasattr(agent, 'cached_pred_cap'): agent.cached_pred_cap = float(fixed_capacity)
-    if hasattr(agent, 'step_cnt'): agent.step_cnt = 0
-    if hasattr(agent, 'standing_queue_steps'): agent.standing_queue_steps = 0
-    if hasattr(agent, 'in_competitive_mode'): agent.in_competitive_mode = False
+    if hasattr(agent, "window"):
+        agent.window = []
+    if hasattr(agent, "cached_pred_cap"):
+        agent.cached_pred_cap = 1.05
+    if hasattr(agent, "step_cnt"):
+        agent.step_cnt = 0
+    if hasattr(agent, "standing_queue_steps"):
+        agent.standing_queue_steps = 0
+    if hasattr(agent, "in_competitive_mode"):
+        agent.in_competitive_mode = False
     
-    total_loss = 0.0
+    total_sent = 0.0
+    total_delivered = 0.0
     congestion_loss = 0.0
     wireless_loss = 0.0
-    total_proc = 0.0
     rtt_log = []
     ge_state = 0
     
-    for t in range(total_steps):
+    for _ in range(total_steps):
         rate = max(0.02, agent.rate)
+        total_sent += rate
         
-        # 1. Non-congestion wireless drop check
+        # 1. Non-congestion wireless loss check
         is_wireless_drop = False
         if loss_mode == "random":
             if random_loss_rate > 0 and rng.uniform() < random_loss_rate:
@@ -87,48 +99,58 @@ def run_loss_sim(
             if r_fade < 0.25:
                 is_wireless_drop = True
                 
-        # 2. Buffer ingress & Congestion drop check
+        # 2. Ingress & buffer overflow check (congestion loss)
         is_congestion_drop = False
         queue += rate
         if queue > buffer_capacity:
             c_loss = queue - buffer_capacity
             congestion_loss += c_loss
-            total_loss += c_loss
             queue = buffer_capacity
             is_congestion_drop = True
             
-        if is_wireless_drop:
-            wireless_loss += 1.0
-            total_loss += 1.0
-            
-        loss_event = is_congestion_drop or is_wireless_drop
-        
         # 3. Router packet forwarding
         proc = min(queue, fixed_capacity)
         queue -= proc
-        total_proc += proc
         
-        # 4. Realistic RTT telemetry with physical queueing delay and Gaussian jitter
+        # 4. Wireless drop over the air (conserves packet count)
+        w_drop = min(1.0, proc) if is_wireless_drop else 0.0
+        proc_delivered = proc - w_drop
+        wireless_loss += w_drop
+        total_delivered += proc_delivered
+        
+        loss_event = is_congestion_drop or is_wireless_drop
+        
+        # 5. Realistic physical RTT telemetry
         curr_rtt = base_rtt + (queue * 1.9) + rng.normal(0, 0.8)
         curr_rtt = max(10.0, curr_rtt)
         rtt_log.append(curr_rtt)
         
-        # 5. Agent ACK Observation & Rate Update
-        agent.observe_ack(curr_rtt, loss_event, proc)
+        # 6. Agent observation and rate actuation
+        agent.observe_ack(curr_rtt, loss_event, proc_delivered)
         agent.update_rate(loss_event)
         
     avg_rtt = float(np.mean(rtt_log))
     p95_rtt = float(np.percentile(rtt_log, 95))
-    goodput = float((total_proc - 20.0 - total_loss * 5.0) / total_steps)
+    total_loss = congestion_loss + wireless_loss
+    
+    # Net application goodput (useful non-duplicate delivery)
+    goodput = float((total_delivered - 20.0 - total_loss * 5.0) / total_steps)
     goodput = max(goodput, 0.001)
+    
+    conservation_error = abs(total_sent - (total_delivered + congestion_loss + wireless_loss + queue))
     
     return SimResult({
         "goodput": goodput,
+        "throughput": float(total_delivered / total_steps),
         "avg_rtt": avg_rtt,
         "p95_rtt": p95_rtt,
+        "total_sent": total_sent,
+        "total_delivered": total_delivered,
         "total_loss": total_loss,
         "congestion_loss": congestion_loss,
-        "wireless_loss": wireless_loss
+        "wireless_loss": wireless_loss,
+        "final_queue": queue,
+        "conservation_error": conservation_error
     })
 
 
@@ -172,23 +194,30 @@ def run_capacity_sim(agent, family="markov", total_steps=3000, seed=42, buffer_c
     
     # 2. Simulation execution
     queue = 0.0
-    agent.rate = float(cap_trace[0])
+    agent.rate = 1.05
     agent.min_rtt = None
     agent.rtt_history = []
     agent.deliv_history = []
     agent.recent_losses = [0] * 6
-    if hasattr(agent, 'window'): agent.window = []
-    if hasattr(agent, 'cached_pred_cap'): agent.cached_pred_cap = float(cap_trace[0])
-    if hasattr(agent, 'step_cnt'): agent.step_cnt = 0
-    if hasattr(agent, 'standing_queue_steps'): agent.standing_queue_steps = 0
-    if hasattr(agent, 'in_competitive_mode'): agent.in_competitive_mode = False
+    if hasattr(agent, "window"):
+        agent.window = []
+    if hasattr(agent, "cached_pred_cap"):
+        agent.cached_pred_cap = 1.05
+    if hasattr(agent, "step_cnt"):
+        agent.step_cnt = 0
+    if hasattr(agent, "standing_queue_steps"):
+        agent.standing_queue_steps = 0
+    if hasattr(agent, "in_competitive_mode"):
+        agent.in_competitive_mode = False
     
-    congestion_loss = 0.0
+    total_sent = 0.0
     total_delivered = 0.0
+    congestion_loss = 0.0
     rtt_log = []
     
     for t in range(total_steps):
         rate = max(0.02, agent.rate)
+        total_sent += rate
         queue += rate
         
         loss_event = False
@@ -213,12 +242,18 @@ def run_capacity_sim(agent, family="markov", total_steps=3000, seed=42, buffer_c
     p95_rtt = float(np.percentile(rtt_log, 95))
     goodput = float((total_delivered - congestion_loss * 5.0) / total_steps)
     goodput = max(0.001, goodput)
+    conservation_error = abs(total_sent - (total_delivered + congestion_loss + queue))
     
     return SimResult({
         "goodput": goodput,
+        "throughput": float(total_delivered / total_steps),
         "avg_rtt": avg_rtt,
         "p95_rtt": p95_rtt,
-        "congestion_loss": congestion_loss
+        "total_sent": total_sent,
+        "total_delivered": total_delivered,
+        "congestion_loss": congestion_loss,
+        "final_queue": queue,
+        "conservation_error": conservation_error
     })
 
 
@@ -235,11 +270,16 @@ def run_competition_sim(agent_host, agent_opp, total_steps=3000, seed=42, buffer
     agent_host.rtt_history = []
     agent_host.deliv_history = []
     agent_host.recent_losses = [0] * 6
-    if hasattr(agent_host, 'window'): agent_host.window = []
-    if hasattr(agent_host, 'standing_queue_steps'): agent_host.standing_queue_steps = 0
-    if hasattr(agent_host, 'in_competitive_mode'): agent_host.in_competitive_mode = False
-    if hasattr(agent_host, 'competitive_steps'): agent_host.competitive_steps = 0
-    if hasattr(agent_host, 'step_cnt'): agent_host.step_cnt = 0
+    if hasattr(agent_host, "window"):
+        agent_host.window = []
+    if hasattr(agent_host, "standing_queue_steps"):
+        agent_host.standing_queue_steps = 0
+    if hasattr(agent_host, "in_competitive_mode"):
+        agent_host.in_competitive_mode = False
+    if hasattr(agent_host, "competitive_steps"):
+        agent_host.competitive_steps = 0
+    if hasattr(agent_host, "step_cnt"):
+        agent_host.step_cnt = 0
     
     if agent_opp is not None:
         agent_opp.rate = 1.05
@@ -247,18 +287,25 @@ def run_competition_sim(agent_host, agent_opp, total_steps=3000, seed=42, buffer
         agent_opp.rtt_history = []
         agent_opp.deliv_history = []
         agent_opp.recent_losses = [0] * 6
-        if hasattr(agent_opp, 'window'): agent_opp.window = []
-        if hasattr(agent_opp, 'standing_queue_steps'): agent_opp.standing_queue_steps = 0
-        if hasattr(agent_opp, 'in_competitive_mode'): agent_opp.in_competitive_mode = False
-        if hasattr(agent_opp, 'step_cnt'): agent_opp.step_cnt = 0
+        if hasattr(agent_opp, "window"):
+            agent_opp.window = []
+        if hasattr(agent_opp, "standing_queue_steps"):
+            agent_opp.standing_queue_steps = 0
+        if hasattr(agent_opp, "in_competitive_mode"):
+            agent_opp.in_competitive_mode = False
+        if hasattr(agent_opp, "step_cnt"):
+            agent_opp.step_cnt = 0
 
     delivered_h, delivered_o = 0.0, 0.0
+    sent_h, sent_o = 0.0, 0.0
     loss_host, loss_opp = 0.0, 0.0
     rtt_log_host = []
     
-    for t in range(total_steps):
+    for _ in range(total_steps):
         r_host = max(0.02, agent_host.rate)
         r_opp = max(0.02, agent_opp.rate) if agent_opp is not None else 0.0
+        sent_h += r_host
+        sent_o += r_opp
         
         queue += (r_host + r_opp)
         
@@ -313,19 +360,26 @@ def run_competition_sim(agent_host, agent_opp, total_steps=3000, seed=42, buffer
         jfi = 1.0
         fair_share = 1.0
         
-    comp_steps = getattr(agent_host, 'competitive_steps', 0)
+    comp_steps = getattr(agent_host, "competitive_steps", 0)
     fpr_comp = float(comp_steps / total_steps)
+    
+    conservation_error = abs((sent_h + sent_o) - (delivered_h + delivered_o + loss_host + loss_opp + queue))
     
     return SimResult({
         "gp_host": gp_h,
         "gp_opp": gp_o,
         "loss_host": loss_host,
         "loss_opp": loss_opp,
+        "total_sent_host": sent_h,
+        "total_sent_opp": sent_o,
+        "total_delivered_host": delivered_h,
+        "total_delivered_opp": delivered_o,
         "avg_rtt_host": avg_rtt_h,
         "p95_rtt_host": p95_rtt_h,
         "jfi": jfi,
         "fair_share": fair_share,
-        "fpr_comp": fpr_comp
+        "fpr_comp": fpr_comp,
+        "conservation_error": conservation_error
     })
 
 
@@ -337,23 +391,30 @@ def run_multi_flow_sim(agents, total_steps=3000, seed=42, buffer_capacity=50.0, 
     queue = 0.0
     n_flows = len(agents)
     
+    # Initialize agents without oracle fair share
     for a in agents:
-        a.rate = bottleneck_cap / n_flows
+        a.rate = 1.05
         a.min_rtt = None
         a.rtt_history = []
         a.deliv_history = []
         a.recent_losses = [0] * 6
-        if hasattr(a, 'window'): a.window = []
-        if hasattr(a, 'step_cnt'): a.step_cnt = 0
-        if hasattr(a, 'standing_queue_steps'): a.standing_queue_steps = 0
-        if hasattr(a, 'in_competitive_mode'): a.in_competitive_mode = False
+        if hasattr(a, "window"):
+            a.window = []
+        if hasattr(a, "step_cnt"):
+            a.step_cnt = 0
+        if hasattr(a, "standing_queue_steps"):
+            a.standing_queue_steps = 0
+        if hasattr(a, "in_competitive_mode"):
+            a.in_competitive_mode = False
 
     delivered = np.zeros(n_flows)
+    sent = np.zeros(n_flows)
     losses = np.zeros(n_flows)
     rtt_logs = [[] for _ in range(n_flows)]
     
-    for t in range(total_steps):
+    for _ in range(total_steps):
         rates = np.array([max(0.02, a.rate) for a in agents])
+        sent += rates
         sum_rate = np.sum(rates)
         queue += sum_rate
         
@@ -391,11 +452,17 @@ def run_multi_flow_sim(agents, total_steps=3000, seed=42, buffer_capacity=50.0, 
     sum_gp = float(np.sum(goodputs))
     sum_sq_gp = float(np.sum(np.array(goodputs) ** 2))
     jfi = float((sum_gp ** 2) / (n_flows * sum_sq_gp)) if sum_sq_gp > 0 else 1.0
+    conservation_error = abs(float(np.sum(sent)) - (float(np.sum(delivered)) + total_loss + queue))
     
     return SimResult({
         "goodputs": goodputs,
+        "throughput": float(np.sum(delivered) / total_steps),
         "avg_rtt": avg_rtt,
         "p95_rtt": p95_rtt,
+        "total_sent": float(np.sum(sent)),
+        "total_delivered": float(np.sum(delivered)),
         "total_loss": total_loss,
+        "final_queue": queue,
+        "conservation_error": conservation_error,
         "jfi": jfi
     })

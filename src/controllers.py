@@ -3,6 +3,9 @@ Canonical Controllers Library for ML-TCP
 Contains base protocol agents, traditional heuristics (Reno, CUBIC, Vegas, BBR, Copa),
 non-ML pacing rules (Reference Non-ML D1, Default, Tuned, Multi-Condition, Ignore-All),
 and ML-augmented agents (LossClassifier, CapacityForecaster, OpponentDetector).
+
+All controllers operate exclusively on sender-observable signals (RTT, delivery rate,
+packet losses, RTT gradients, RTT ratio) without reading simulator queue or buffer state.
 """
 
 import numpy as np
@@ -30,8 +33,8 @@ class ProtocolAgent:
         self.step_cnt += 1
         if self.min_rtt is None:
             self.min_rtt = rtt
-            self.rtt_history = [rtt] * 6
-            self.deliv_history = [acked_proc] * 20
+            self.rtt_history = [rtt] * 5
+            self.deliv_history = [acked_proc] * 19
         else:
             self.min_rtt = min(self.min_rtt, rtt)
             
@@ -56,10 +59,11 @@ class ProtocolAgent:
 class PacingVariantD1_CoincidentRise(ProtocolAgent):
     """
     Reference Non-ML Controller (Variant D1: Coincident Rise Expiry).
-    - 20-step rolling window to bridge wireless loss.
-    - Flushes delivery history ONLY when queuing delay and gradient rise simultaneously
-      (rtt_ratio > 1.15 and grad_1 > 0).
-    - On packet loss WITHOUT delay inflation (rtt_ratio <= 1.12), delivery history is preserved.
+    Specification:
+    - 20-step rolling delivery window to bridge isolated non-congestion losses.
+    - Flushes delivery history ONLY when queuing delay and gradient rise simultaneously:
+      rtt_ratio = curr_rtt / min_rtt > 1.15 AND grad_1 > 0.
+    - On loss without delay inflation (rtt_ratio <= 1.12), delivery history is preserved.
     """
     def __init__(self, name):
         super().__init__(name)
@@ -97,11 +101,15 @@ class PacingVariantD1_CoincidentRise(ProtocolAgent):
 
 class ReferenceNonMLAgent(PacingVariantD1_CoincidentRise):
     """Alias for Canonical Reference Non-ML Controller."""
-    pass
 
 
 class RenoAgent(ProtocolAgent):
-    """Traditional AIMD (Additive Increase, Multiplicative Decrease)."""
+    """
+    Traditional AIMD (RFC 5681).
+    - Additive Increase: +1 pkt / RTT during congestion avoidance; doubling in slow start.
+    - Multiplicative Decrease: cwnd halved (factor 0.50) upon packet loss.
+    - Pacing rate scaled with measured RTT: rate = cwnd / RTT.
+    """
     def __init__(self, name):
         super().__init__(name)
         self.cwnd = 2.0
@@ -118,11 +126,17 @@ class RenoAgent(ProtocolAgent):
             else:
                 self.cwnd += 1.0 / max(1.0, self.cwnd)  # Congestion avoidance
         curr_rtt = self.rtt_history[-1] if self.rtt_history else 50.0
-        self.rate = max(min_rate, (self.cwnd / max(10.0, curr_rtt)) * 50.0)
+        base_rtt_est = self.min_rtt if self.min_rtt is not None else 50.0
+        self.rate = max(min_rate, (self.cwnd / max(10.0, curr_rtt)) * base_rtt_est)
 
 
 class CubicAgent(ProtocolAgent):
-    """Standard CUBIC TCP agent."""
+    """
+    Standard CUBIC TCP (RFC 8312).
+    - Cubic window growth function: W_cubic(t) = C * (t - K)^3 + W_max.
+    - Multiplicative decrease beta = 0.70 upon loss.
+    - Pacing rate scaled with measured base RTT.
+    """
     def __init__(self, name):
         super().__init__(name)
         self.cwnd = 2.0
@@ -144,11 +158,17 @@ class CubicAgent(ProtocolAgent):
             w_cubic = self.c * ((t_sec - k) ** 3) + self.w_max
             self.cwnd = max(2.0, w_cubic)
         curr_rtt = self.rtt_history[-1] if self.rtt_history else 50.0
-        self.rate = max(min_rate, (self.cwnd / max(10.0, curr_rtt)) * 50.0)
+        base_rtt_est = self.min_rtt if self.min_rtt is not None else 50.0
+        self.rate = max(min_rate, (self.cwnd / max(10.0, curr_rtt)) * base_rtt_est)
 
 
 class ReferenceVegasAgent(ProtocolAgent):
-    """Delay-based TCP Vegas reference implementation."""
+    """
+    Delay-based TCP Vegas (Brakmo & Peterson, SIGCOMM 1994).
+    - Expected rate = rate * (RTT_min / RTT).
+    - Diff = rate - Expected rate (queue occupancy proxy).
+    - Target window bounds [alpha=1.0, beta=3.0].
+    """
     def __init__(self, name, alpha=1.0, beta=3.0):
         super().__init__(name)
         self.alpha = alpha
@@ -170,7 +190,10 @@ class ReferenceVegasAgent(ProtocolAgent):
 
 class AuditedBBRAgent(ProtocolAgent):
     """
-    Audited BBR agent with 10-RTT rolling BtlBw window and clamped cwnd headroom.
+    Audited BBR agent (Cardwell et al., ACM Queue 2016).
+    - 10-RTT rolling BtlBw window.
+    - Inflight cap: cwnd clamped to 2.0 * BDP.
+    - PROBE_BW 8-phase cycle: [1.25, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0].
     """
     def __init__(self, name, window_rtts=10):
         super().__init__(name)
@@ -209,7 +232,11 @@ class AuditedBBRAgent(ProtocolAgent):
 
 
 class CopaAgent(ProtocolAgent):
-    """Delay-based Copa agent (Arun & Balakrishnan, NSDI 2018)."""
+    """
+    Delay-based Copa agent (Arun & Balakrishnan, NSDI 2018).
+    - Normalized queueing delay ratio: d_q = (RTT - RTT_min) / RTT_min.
+    - Target rate: lambda = delivery_rate / (1.0 + delta * d_q).
+    """
     def __init__(self, name, delta=0.5):
         super().__init__(name)
         self.delta = delta
@@ -217,8 +244,8 @@ class CopaAgent(ProtocolAgent):
     def update_rate(self, loss_event=False):
         min_rate = self.get_min_rate()
         curr_rtt = self.rtt_history[-1]
-        q_delay = max(0.001, (curr_rtt - self.min_rtt) / 1000.0)
-        target_rate = 1.0 / (self.delta * q_delay)
+        q_delay_ratio = max(0.001, (curr_rtt - self.min_rtt) / max(self.min_rtt, 1e-3))
+        target_rate = max(min_rate, self.est_delivery_rate / max(0.1, 1.0 + self.delta * q_delay_ratio))
         if self.rate < target_rate:
             self.rate += 0.05
         else:
@@ -226,7 +253,11 @@ class CopaAgent(ProtocolAgent):
 
 
 class LossClassifierAgentBase(PacingVariantD1_CoincidentRise):
-    """Loss classification controller with pluggable ML models and matched non-ML rules."""
+    """
+    Loss classification controller with pluggable ML models and matched non-ML rules.
+    Operates strictly on sender-observable features:
+    [rtt_ratio, grad_1, grad_3, grad_5, delivery_rate, rate, recent_loss_count].
+    """
     def __init__(self, name, mode="default_rule", threshold=1.12, cut_factor=0.90, model=None, multi_th=None):
         super().__init__(name)
         self.mode = mode
@@ -271,7 +302,10 @@ class LossClassifierAgentBase(PacingVariantD1_CoincidentRise):
 
 
 class CapacityAgentBase(ProtocolAgent):
-    """Predictive capacity controller with LOFO models and matched heuristics."""
+    """
+    Predictive capacity controller with LOFO models and matched heuristics.
+    Proactively scales pacing rate using forecast channel bandwidth.
+    """
     def __init__(self, name, mode="default_nonml", model=None, flush_ratio=1.12, drain_factor=0.80):
         super().__init__(name)
         self.mode = mode
@@ -279,10 +313,10 @@ class CapacityAgentBase(ProtocolAgent):
         self.flush_ratio = flush_ratio
         self.drain_factor = drain_factor
         self.window = []
-        self.ewma_cap = 3.0
-        self.holt_level = 3.0
+        self.ewma_cap = 1.05
+        self.holt_level = 1.05
         self.holt_trend = 0.0
-        self.cached_pred_cap = 3.0
+        self.cached_pred_cap = 1.05
         self.step_cnt = 0
 
     def observe_ack(self, rtt, loss_event, acked_proc):
@@ -315,11 +349,11 @@ class CapacityAgentBase(ProtocolAgent):
         grad_1 = curr_rtt - self.rtt_history[-2] if len(self.rtt_history) >= 2 else 0.0
         grad_3 = (curr_rtt - self.rtt_history[-4]) / 3.0 if len(self.rtt_history) >= 4 else grad_1
         grad_5 = (curr_rtt - self.rtt_history[-6]) / 5.0 if len(self.rtt_history) >= 6 else grad_1
-        mean_deliv = float(np.mean(self.deliv_history)) if self.deliv_history else 1.0
+        mean_deliv = float(np.mean(self.deliv_history)) if self.deliv_history else self.est_delivery_rate
 
         if self.step_cnt % 5 == 0:
             if self.mode == "persistence":
-                self.cached_pred_cap = self.deliv_history[-1] if self.deliv_history else 3.0
+                self.cached_pred_cap = self.deliv_history[-1] if self.deliv_history else self.est_delivery_rate
             elif self.mode == "linear":
                 slope = (self.deliv_history[-1] - self.deliv_history[-4]) / 3.0 if len(self.deliv_history) >= 4 else 0.0
                 self.cached_pred_cap = max(0.5, self.deliv_history[-1] + slope * 5.0)
@@ -353,7 +387,11 @@ class CapacityAgentBase(ProtocolAgent):
 
 
 class OpponentAgentBase(PacingVariantD1_CoincidentRise):
-    """Opponent detection controller with dynamic competitive switching mode."""
+    """
+    Opponent detection controller with dynamic competitive switching mode.
+    Classifies cross-traffic opponent type (Alone, Loss-based, Rate-based, Delay-based)
+    and activates aggressive fair-share recovery only when competing with loss-based flows.
+    """
     def __init__(self, name, mode="default_rule", threshold_steps=60, model=None):
         super().__init__(name)
         self.mode = mode

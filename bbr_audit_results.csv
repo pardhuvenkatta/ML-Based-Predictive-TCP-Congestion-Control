@@ -1,4 +1,0 @@
-Scenario,Uncapped GP,Uncapped Loss,Uncapped RTT,Audited GP (cwnd cap),Audited Loss,Audited RTT,Audited JFI
-S2,2.9625,347.8,134.2ms,3.8407 +/- 0.5944,9.7,98.4ms,1.000
-S7,3.2419,286.9,131.3ms,3.9708 +/- 0.0019,10.1,120.4ms,0.668
-S8,2.9469,1157.4,135.5ms,5.5899 +/- 0.0161,153.7,120.2ms,0.212

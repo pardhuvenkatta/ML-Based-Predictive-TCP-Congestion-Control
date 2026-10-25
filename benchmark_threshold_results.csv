@@ -1,5 +1,0 @@
-Threshold % (Packet Limit),Reduction %,Total Packet Loss,Throughput (Packets/Step),Verdict
-90% (45 Packets),30%,~18 packets,2.9910,Failed: Buffer headroom too small; feedback lag causes queue overflow during traffic spikes.
-90% (45 Packets),40%,~8 packets,2.8120,"Failed: Reduces packet loss slightly, but throughput drops significantly due to over-throttling."
-80% (40 Packets),30%,0 packets,2.9850,Optimal: Zero packet loss while maintaining full link capacity.
-70% (35 Packets),30%,0 packets,2.6500,"Sub-optimal: Zero loss, but triggers false alarms early, lowering throughput needlessly."

@@ -1,5 +1,0 @@
-Startup_Mode,Protocol,Goodput,Loss,Avg RTT (ms),JFI
-Staggered Arrivals,Audited BBR,5.5899,153.7,120.2,0.212 +/- 0.004
-Staggered Arrivals,Reference Vegas,5.9208,0.0,66.1,0.993 +/- 0.002
-Equal Start Times (t=0),Audited BBR,5.9983,0.0,51.5,1.000 +/- 0.000
-Equal Start Times (t=0),Reference Vegas,6.0000,0.0,67.0,1.000 +/- 0.000

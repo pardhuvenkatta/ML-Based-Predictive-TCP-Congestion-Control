@@ -1,101 +1,112 @@
+#!/usr/bin/env python3
 """
-ML-Based Predictive TCP Congestion Control
-Script: reproduce_all.py (End-to-End Master Reproduction Runner)
-
-Single-command script that executes all comprehensive benchmark suites:
-1. step1_supervised_and_loss_classification.py:
-   - Broad randomized dataset generation (67,500 train / 22,500 test samples).
-   - Supervised models: RF, LightGBM, Small MLP, GRU, 1D-CNN regression & classification.
-   - Offline MAE, R2, accuracy, precision, recall, inference latency, model size.
-   - Closed-loop loss classifier benchmark (0.1%, 0.5%, 1.0%, 2.0% loss & Gilbert-Elliott).
-   - Closed-loop supervised held-out evaluation across 20 fixed seeds.
-2. step2_rl_controllers_ppo_sac.py:
-   - Gymnasium continuous action TCP environment.
-   - 12 reward configurations swept across 3 seeds on domain randomization with competition curriculum.
-   - Validation selection of best reward setting.
-   - PPO and SAC training and evaluation.
-   - Policy distillation into Decision Tree and Small MLP.
-   - Comprehensive held-out evaluation with paired CIs across 20 seeds.
-   - Gate F check.
-3. step3_realistic_robustness_and_competition.py:
-   - Realistic channel conditions: Cellular Markov fades, ACK compression, short flows, CoDel AQM, RTT heterogeneity.
-   - Multi-flow scaling up to 16 concurrent flows (equal vs. staggered starts).
-   - Copa/Nimbus competitive mode switching across buffer sizes B=10, 50, 200.
-   - Step-change stability metrics and +/-50% simulator parameter sensitivity sweep.
-   - Generates publication plots (realistic_time_series_step_change.png, multi_flow_scaling_jfi_chart.png).
-4. comprehensive_final_robustness.py:
-   - Full factorial: Base RTT (20 and 200 ms) x Buffers (3, 5, 50, 200 pkts).
-   - Mahimahi cellular trace replay.
-   - Rule-based vs. ML-triggered competitor detection.
-   - Capacity recovery & burst loss blackout recovery.
-   - Kernel / userspace feasibility and overhead matrix.
-   - Expanded +/-50% sensitivity on 4 core physical simulator assumptions.
-   - Generates all publication-grade plots.
+ML-TCP: Unified Experiment Reproduction CLI
+Allows reproducing any scientific audit experiment or the entire benchmark suite.
 
 Usage:
-  python reproduce_all.py
+    python reproduce_all.py --experiment lofo_audit
+    python reproduce_all.py --experiment pareto_frontiers
+    python reproduce_all.py --experiment long_rtt_grid
+    python reproduce_all.py --experiment regression_50ms
+    python reproduce_all.py --experiment master_scorecard
+    python reproduce_all.py --experiment copa_robustness
+    python reproduce_all.py --experiment multi_flow_scaling
+    python reproduce_all.py --experiment bbr_competition
+    python reproduce_all.py --experiment all
+    python reproduce_all.py --all --quick
 """
 
-import os
 import sys
-import json
+import argparse
 import time
-import subprocess
 
-def run_phase(phase_name, script_path):
-    print("\n" + "=" * 80)
-    print(f"  RUNNING: {phase_name}")
-    print(f"  Script:  {script_path}")
-    print("=" * 80)
-    t0 = time.time()
-    cmd = [sys.executable, "-u", script_path]
-    proc = subprocess.run(cmd, capture_output=False)
-    elapsed = time.time() - t0
-    if proc.returncode != 0:
-        print(f"  [ERROR] {phase_name} failed with exit code {proc.returncode} after {elapsed:.1f}s")
-        sys.exit(proc.returncode)
-    else:
-        print(f"  [OK] {phase_name} finished successfully in {elapsed:.1f}s")
-    return elapsed
+from src.experiments import (
+    run_lofo_audit,
+    run_pareto_frontiers,
+    run_long_rtt_grid,
+    run_regression_50ms,
+    run_master_scorecard,
+    run_copa_robustness,
+    run_multi_flow_scaling,
+    run_bbr_competition,
+    run_all
+)
+
+
+EXPERIMENT_MAP = {
+    "lofo_audit": run_lofo_audit,
+    "pareto_frontiers": run_pareto_frontiers,
+    "long_rtt_grid": run_long_rtt_grid,
+    "regression_50ms": run_regression_50ms,
+    "master_scorecard": run_master_scorecard,
+    "copa_robustness": run_copa_robustness,
+    "multi_flow_scaling": run_multi_flow_scaling,
+    "bbr_competition": run_bbr_competition,
+    "all": run_all
+}
+
 
 def main():
-    total_start = time.time()
-    print("*" * 80)
-    print("  ML-BASED PREDICTIVE TCP CONGESTION CONTROL: MASTER REPRODUCTION SUITE")
-    print("  Authors: BAHAAR (Reg. 24BCE1760), PARDHU (Reg. 24BCE1754)")
-    print("*" * 80)
+    parser = argparse.ArgumentParser(
+        description="Reproduce ML-TCP scientific audit experiments and benchmark suites."
+    )
+    parser.add_argument(
+        "--experiment", "-e",
+        choices=list(EXPERIMENT_MAP.keys()),
+        default=None,
+        help="Specific experiment to execute."
+    )
+    parser.add_argument(
+        "--all", "-a",
+        action="store_true",
+        help="Execute all experiments sequentially."
+    )
+    parser.add_argument(
+        "--quick", "-q",
+        action="store_true",
+        help="Run fast verification mode with fewer seeds/steps."
+    )
+    parser.add_argument(
+        "--seeds", "-s",
+        type=str,
+        default=None,
+        help="Comma-separated random seeds (e.g., '42,43,44,45')."
+    )
 
-    # Load fixed seeds
-    if os.path.exists("seeds.json"):
-        with open("seeds.json", "r") as f:
-            cfg = json.load(f)
-        seeds = cfg.get("seeds", list(range(42, 62)))
-        print(f"  Loaded {len(seeds)} fixed evaluation seeds from seeds.json: {seeds[:5]}...{seeds[-1]}")
+    args = parser.parse_args()
+
+    custom_seeds = None
+    if args.seeds:
+        custom_seeds = [int(s.strip()) for s in args.seeds.split(",") if s.strip()]
+
+    target_exp = "all" if args.all else args.experiment
+
+    if target_exp is None:
+        parser.print_help()
+        print("\nAvailable experiments:")
+        for name in EXPERIMENT_MAP.keys():
+            print(f"  - {name}")
+        sys.exit(0)
+
+    start_time = time.time()
+    print(f"Starting reproduction of: '{target_exp}' (quick={args.quick})...")
+
+    func = EXPERIMENT_MAP[target_exp]
+    if target_exp == "all":
+        func(quick=args.quick)
+    elif target_exp in ["lofo_audit", "pareto_frontiers"]:
+        func(quick=args.quick)
+    elif target_exp in ["long_rtt_grid", "copa_robustness", "multi_flow_scaling", "bbr_competition"]:
+        if custom_seeds:
+            func(seeds=custom_seeds)
+        else:
+            func()
     else:
-        seeds = list(range(42, 62))
-        print(f"  Defaulting to 20 fixed evaluation seeds: {seeds}")
+        func()
 
-    phases = [
-        ("Step 1: Supervised Models & Loss Classifier", "step1_supervised_and_loss_classification.py"),
-        ("Step 2: RL Controllers PPO & SAC, Distillation & Gate F", "step2_rl_controllers_ppo_sac.py"),
-        ("Step 3: Realistic Robustness, 16-Flow Scaling & Competition", "step3_realistic_robustness_and_competition.py"),
-        ("Step 4: Final Robustness Deliverables & Publication Figures", "comprehensive_final_robustness.py")
-    ]
+    elapsed = time.time() - start_time
+    print(f"\n[EXECUTION COMPLETED] Runtime: {elapsed:.2f} seconds.")
 
-    phase_timings = {}
-    for name, script in phases:
-        elapsed = run_phase(name, script)
-        phase_timings[name] = elapsed
-
-    total_time = time.time() - total_start
-    print("\n" + "*" * 80)
-    print("  ALL BENCHMARK PHASES COMPLETED CLEANLY!")
-    print("*" * 80)
-    print("\nExecution Timing Breakdown:")
-    for name, t in phase_timings.items():
-        print(f"  - {name}: {t:.1f}s ({t/60:.2f} min)")
-    print(f"\nTotal Pipeline Execution Time: {total_time:.1f}s ({total_time/60:.2f} min)")
-    print("All CSV artifacts, telemetry tables, and publication figures regenerated cleanly.")
 
 if __name__ == "__main__":
     main()

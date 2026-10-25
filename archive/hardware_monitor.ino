@@ -3,8 +3,8 @@
   Hardware Module: hardware_monitor.ino
   
   Team Members:
-    - BAHAAR (Reg. No: 24BCE1760)
-    - PARDHU (Reg. No: 24BCE1754)
+    - Student Research Team
+    - Computer Networks Laboratory
     
   Target Hardware: ESP32 or Arduino Uno/Nano
   Peripherals:

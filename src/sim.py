@@ -10,6 +10,8 @@ import numpy as np
 
 def load_mahimahi_trace(trace_path="cellular_trace_mahimahi.log"):
     """Load or synthesize cellular trace for trace replay experiments."""
+    if not os.path.exists(trace_path) and os.path.exists(os.path.join("results", trace_path)):
+        trace_path = os.path.join("results", trace_path)
     if os.path.exists(trace_path):
         with open(trace_path, "r", encoding="utf-8") as f:
             lines = [float(line.strip()) for line in f if line.strip()]
